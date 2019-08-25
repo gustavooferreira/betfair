@@ -47,6 +47,43 @@ var OddsRange = []map[string]float64{
 	map[string]float64{"begin": 110, "end": 1000, "var": 10, "ticks": 90},
 }
 
+func OddFloor(odd float64) float64 {
+	// Boundaries
+	if odd >= 1000 {
+		return 1000
+	} else if odd <= 1.01 {
+		return 1.01
+	}
+
+	// Change this for a bisect version.
+	for i := len(Odds) - 1; i >= 0; i-- {
+		if Odds[i] <= odd {
+			return Odds[i]
+		}
+	}
+
+	return 0
+}
+
+func OddCeil(odd float64) float64 {
+	// Boundaries
+	if odd >= 1000 {
+		return 1000
+	} else if odd <= 1.01 {
+		return 1.01
+	}
+
+	// Change this for a bisect version.
+	for _, value := range Odds {
+		if value >= odd {
+			return value
+		}
+	}
+
+	// Never hits this
+	return 0
+}
+
 // def get_odd_shift(odd, shift):
 //     """Calculate the odd after shift.
 
@@ -83,13 +120,3 @@ var OddsRange = []map[string]float64{
 //             index = key
 
 //     return Odds.ODDS[index]
-
-// def odd_ceil(odd):
-//     for value in Odds.ODDS:
-//         if value >= odd:
-//             return value
-
-// def odd_floor(odd):
-//     for value in reversed(Odds.ODDS):
-//         if value <= odd:
-//             return value
