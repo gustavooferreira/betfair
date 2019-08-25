@@ -19,7 +19,7 @@ func TestAbs(t *testing.T) {
 	mf := MarketFilter{EventTypeIds: []string{"7"}, MarketCountries: []string{"GB", "IE"},
 		MarketTypeCodes: []string{"WIN"}, MarketStartTime: tr}
 
-	bs.ListMarketCatalogue(mf, &[]MarketProjection{MarketProjection_MarketStartTime}, 100)
+	bs.ListMarketCatalogue(mf, &[]MarketProjection{MarketProjection_MarketStartTime}, nil, 100)
 
 	if "yolo" != "yolo" {
 		t.Errorf("mismatched token: %s", "YOLO")

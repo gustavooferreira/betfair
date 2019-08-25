@@ -1,4 +1,4 @@
-package betfair
+package auth
 
 import "testing"
 

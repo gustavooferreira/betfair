@@ -1,6 +1,7 @@
 .PHONY: build
 build:
-	@go build github.com/gustavooferreira/horsebet/pkg/betfair
+	@go build
+	# @go build github.com/gustavooferreira/horsebet/pkg/betfair
 
 
 .PHONY: test
