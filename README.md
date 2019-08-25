@@ -1,3 +1,3 @@
 # BETFAIR API
 
-Includes betfair APING, exchange stream plus some utils.
+Includes betfair APING and exchange stream APIs.
