@@ -8,5 +8,5 @@ type listMarketCatalogueReqContainer struct {
 }
 
 type listMarketBookReqContainer struct {
-	MarketIDs []string `json:"marketids"`
+	MarketIDs []string `json:"marketIds"`
 }

@@ -139,6 +139,10 @@ func (b BetfairAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
 
 		log.Printf("%+v\n", bapie)
 
+		// Could be empty too:
+		// Example:
+		// "{"faultcode":"Client","faultstring":"DSC-0018","detail":{}}"
+
 		if bapie.Detail.APINGException.ErrorCode == APINGExceptionCode_InvalidAppKey {
 			log.Println("YOOOOOOLOOOOOO")
 		}
