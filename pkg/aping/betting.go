@@ -106,7 +106,7 @@ func (b BetfairAPI) ListMarketBook(marketIDs []string) ([]MarketBook, error) {
 
 func (b BetfairAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
 
-	req, err := http.NewRequest("POST", listMarketCatalogueEndpoint, body)
+	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
 	}
