@@ -28,13 +28,6 @@ type TimeRange struct {
 	To   *time.Time `json:"to,omitempty"`
 }
 
-type listMarketCatalogueReqContainer struct {
-	Filter           MarketFilter        `json:"filter"`
-	MarketProjection *[]MarketProjection `json:"marketProjection,omitempty"`
-	Sort             *MarketSort         `json:"sort, omitempty"`
-	MaxResults       uint                `json:"maxResults"`
-}
-
 type MarketCatalogue struct {
 	MarketID        string          `json:"marketId"`
 	MarketName      string          `json:"marketName"`
@@ -64,4 +57,16 @@ type APINGException struct {
 	ErrorCode    APINGExceptionCode `json:"errorCode"`
 	ErrorDetails string             `json:"errorDetails"`
 	RequestUUID  string             `json:"requestUUID"`
+}
+
+type MarketBook struct {
+	MarketID string   `json:"marketId"`
+	Runners  []Runner `json:"runners"`
+}
+
+type Runner struct {
+	SelectionID uint `json:"selectionId"`
+	// Change this to an ENUM
+	Status          string  `json:"status"`
+	LastPriceTraded float64 `json:lastPriceTraded`
 }

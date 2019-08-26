@@ -16,6 +16,7 @@ const ukBettingEndpoint = "https://api.betfair.com/rest/v1.0/"
 const (
 	listEventTypesEndpoint      = ukBettingEndpoint + "listEventTypes/"
 	listMarketCatalogueEndpoint = ukBettingEndpoint + "listMarketCatalogue/"
+	listMarketBookEndpoint      = ukBettingEndpoint + "listMarketBook/"
 )
 
 var ukEndpoints = map[string]string{
@@ -72,6 +73,35 @@ func (b BetfairAPI) ListMarketCatalogue(marketFilter MarketFilter, mp *[]MarketP
 	}
 
 	return mcs, nil
+}
+
+// ListMarketBook lists dynamic data about markets
+func (b BetfairAPI) ListMarketBook(marketIDs []string) ([]MarketBook, error) {
+	lrc := listMarketBookReqContainer{MarketIDs: marketIDs}
+
+	lrcBytes, err := json.Marshal(lrc)
+	if err != nil {
+		log.Fatal("error while marshalling")
+	}
+
+	payload := bytes.NewBuffer(lrcBytes)
+
+	log.Printf("Request body: %s", payload)
+
+	response, err := b.sendRequest(listMarketBookEndpoint, payload)
+
+	if err != nil {
+		return nil, err
+	}
+
+	mbs := []MarketBook{}
+
+	err = json.Unmarshal(response, &mbs)
+	if err != nil {
+		return []MarketBook{}, errors.New("error while unmarshalling response")
+	}
+
+	return mbs, nil
 }
 
 func (b BetfairAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
