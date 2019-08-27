@@ -73,7 +73,7 @@ type Runner struct {
 
 type PlaceInstruction struct {
 	OrderType   string     `json:"orderType"`
-	SelectionID string     `json:"selectionID"`
+	SelectionID string     `json:"selectionId"`
 	Side        string     `json:"side"`
 	LimitOrder  LimitOrder `json:"limitOrder"`
 }
