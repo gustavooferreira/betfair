@@ -10,3 +10,8 @@ type listMarketCatalogueReqContainer struct {
 type listMarketBookReqContainer struct {
 	MarketIDs []string `json:"marketIds"`
 }
+
+type placeOrderReqContainer struct {
+	MarketID     string             `json:"marketId"`
+	Instructions []PlaceInstruction `json:"instructions"`
+}

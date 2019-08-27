@@ -17,6 +17,7 @@ const (
 	listEventTypesEndpoint      = ukBettingEndpoint + "listEventTypes/"
 	listMarketCatalogueEndpoint = ukBettingEndpoint + "listMarketCatalogue/"
 	listMarketBookEndpoint      = ukBettingEndpoint + "listMarketBook/"
+	placeOrdersEndpoint         = ukBettingEndpoint + "placeOrders/"
 )
 
 var ukEndpoints = map[string]string{
@@ -102,6 +103,35 @@ func (b BetfairAPI) ListMarketBook(marketIDs []string) ([]MarketBook, error) {
 	}
 
 	return mbs, nil
+}
+
+// PlaceOrders puts back/lay bets on the market
+func (b BetfairAPI) PlaceOrders(marketID string, instructions []PlaceInstruction) (PlaceExecutionReport, error) {
+	prc := placeOrderReqContainer{MarketID: marketID, Instructions: instructions}
+
+	prcBytes, err := json.Marshal(prc)
+	if err != nil {
+		log.Fatal("error while marshalling")
+	}
+
+	payload := bytes.NewBuffer(prcBytes)
+
+	log.Printf("Request body: %s", payload)
+
+	response, err := b.sendRequest(placeOrdersEndpoint, payload)
+
+	if err != nil {
+		return PlaceExecutionReport{}, err
+	}
+
+	per := PlaceExecutionReport{}
+
+	err = json.Unmarshal(response, &per)
+	if err != nil {
+		return PlaceExecutionReport{}, errors.New("error while unmarshalling response")
+	}
+
+	return per, nil
 }
 
 func (b BetfairAPI) sendRequest(url string, body io.Reader) ([]byte, error) {

@@ -70,3 +70,29 @@ type Runner struct {
 	Status          string  `json:"status"`
 	LastPriceTraded float64 `json:lastPriceTraded`
 }
+
+type PlaceInstruction struct {
+	OrderType   string     `json:"orderType"`
+	SelectionID string     `json:"selectionID"`
+	Side        string     `json:"side"`
+	LimitOrder  LimitOrder `json:"limitOrder"`
+}
+
+type LimitOrder struct {
+	Size            string `json:"size"`
+	Price           string `json:"price"`
+	PersistenceType string `json:"persistenceType"`
+}
+
+type PlaceExecutionReport struct {
+	MarketID           string                   `json:"marketId"`
+	Status             string                   `json:"status"`
+	InstructionReports []PlaceInstructionReport `json:"instructionReports"`
+}
+
+type PlaceInstructionReport struct {
+	Status              string  `json:"status"`
+	AveragePriceMatched float64 `json:"averagePriceMatched"`
+	SizeMatched         float64 `json:"sizeMatched"`
+	OrderStatus         string  `json:"orderStatus"`
+}
