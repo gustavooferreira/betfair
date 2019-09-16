@@ -1,0 +1,16 @@
+package aping
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+)
+
+{{range .Results}}
+// {{.Type}} ENUM
+
+type {{.Type}} int
+
+
+{{end}}

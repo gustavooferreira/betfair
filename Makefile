@@ -18,6 +18,9 @@ coverage:
 lint:
 	@go vet
 
+.PHONY: codegen
+codegen:
+	@go run scripts/gen_enums.go
 
 .PHONY: docs-server
 docs-server:
