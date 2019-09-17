@@ -7,10 +7,19 @@ import (
 	"fmt"
 )
 
-{{range .Results}}
-// {{.Type}} ENUM
+{{ range . }}
+// {{ .Type }} ENUM
 
-type {{.Type}} int
+type {{ .Type }} int
 
+const (
+{{ $type := .Type }}
+{{ range $index, $value := .Enums }}
+    {{ $type }}_{{ gfTitle $value }}{{ if eq $index 0 }} {{ $type }} = iota{{ end }}{{ end }}
+)
 
-{{end}}
+func (e {{ .Type }}) String() string {
+	return {{ .Type }}ToString[e]
+}
+
+{{ end }}
