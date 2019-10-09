@@ -1476,62 +1476,62 @@ func (plt *PriceLadderType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// APINGException ENUM
+// APINGExceptionCode ENUM
 
-type APINGException int
+type APINGExceptionCode int
 
 const (
-	APINGException_TooMuchData APINGException = iota
-	APINGException_InvalidInputData
-	APINGException_InvalidSessionInformation
-	APINGException_NoAppKey
-	APINGException_NoSession
-	APINGException_UnexpectedError
-	APINGException_InvalidAppKey
-	APINGException_TooManyRequests
-	APINGException_ServiceBusy
-	APINGException_TimeoutError
-	APINGException_RequestSizeExceedsLimit
-	APINGException_AccessDenied
+	APINGExceptionCode_TooMuchData APINGExceptionCode = iota
+	APINGExceptionCode_InvalidInputData
+	APINGExceptionCode_InvalidSessionInformation
+	APINGExceptionCode_NoAppKey
+	APINGExceptionCode_NoSession
+	APINGExceptionCode_UnexpectedError
+	APINGExceptionCode_InvalidAppKey
+	APINGExceptionCode_TooManyRequests
+	APINGExceptionCode_ServiceBusy
+	APINGExceptionCode_TimeoutError
+	APINGExceptionCode_RequestSizeExceedsLimit
+	APINGExceptionCode_AccessDenied
 )
 
-func (apinge APINGException) String() string {
-	return aPINGExceptionToString[apinge]
+func (apingec APINGExceptionCode) String() string {
+	return aPINGExceptionCodeToString[apingec]
 }
 
-var aPINGExceptionToString = map[APINGException]string{
-	APINGException_TooMuchData:               "TOO_MUCH_DATA",
-	APINGException_InvalidInputData:          "INVALID_INPUT_DATA",
-	APINGException_InvalidSessionInformation: "INVALID_SESSION_INFORMATION",
-	APINGException_NoAppKey:                  "NO_APP_KEY",
-	APINGException_NoSession:                 "NO_SESSION",
-	APINGException_UnexpectedError:           "UNEXPECTED_ERROR",
-	APINGException_InvalidAppKey:             "INVALID_APP_KEY",
-	APINGException_TooManyRequests:           "TOO_MANY_REQUESTS",
-	APINGException_ServiceBusy:               "SERVICE_BUSY",
-	APINGException_TimeoutError:              "TIMEOUT_ERROR",
-	APINGException_RequestSizeExceedsLimit:   "REQUEST_SIZE_EXCEEDS_LIMIT",
-	APINGException_AccessDenied:              "ACCESS_DENIED",
+var aPINGExceptionCodeToString = map[APINGExceptionCode]string{
+	APINGExceptionCode_TooMuchData:               "TOO_MUCH_DATA",
+	APINGExceptionCode_InvalidInputData:          "INVALID_INPUT_DATA",
+	APINGExceptionCode_InvalidSessionInformation: "INVALID_SESSION_INFORMATION",
+	APINGExceptionCode_NoAppKey:                  "NO_APP_KEY",
+	APINGExceptionCode_NoSession:                 "NO_SESSION",
+	APINGExceptionCode_UnexpectedError:           "UNEXPECTED_ERROR",
+	APINGExceptionCode_InvalidAppKey:             "INVALID_APP_KEY",
+	APINGExceptionCode_TooManyRequests:           "TOO_MANY_REQUESTS",
+	APINGExceptionCode_ServiceBusy:               "SERVICE_BUSY",
+	APINGExceptionCode_TimeoutError:              "TIMEOUT_ERROR",
+	APINGExceptionCode_RequestSizeExceedsLimit:   "REQUEST_SIZE_EXCEEDS_LIMIT",
+	APINGExceptionCode_AccessDenied:              "ACCESS_DENIED",
 }
 
-var aPINGExceptionToEnum = map[string]APINGException{
-	"TOO_MUCH_DATA":               APINGException_TooMuchData,
-	"INVALID_INPUT_DATA":          APINGException_InvalidInputData,
-	"INVALID_SESSION_INFORMATION": APINGException_InvalidSessionInformation,
-	"NO_APP_KEY":                  APINGException_NoAppKey,
-	"NO_SESSION":                  APINGException_NoSession,
-	"UNEXPECTED_ERROR":            APINGException_UnexpectedError,
-	"INVALID_APP_KEY":             APINGException_InvalidAppKey,
-	"TOO_MANY_REQUESTS":           APINGException_TooManyRequests,
-	"SERVICE_BUSY":                APINGException_ServiceBusy,
-	"TIMEOUT_ERROR":               APINGException_TimeoutError,
-	"REQUEST_SIZE_EXCEEDS_LIMIT":  APINGException_RequestSizeExceedsLimit,
-	"ACCESS_DENIED":               APINGException_AccessDenied,
+var aPINGExceptionCodeToEnum = map[string]APINGExceptionCode{
+	"TOO_MUCH_DATA":               APINGExceptionCode_TooMuchData,
+	"INVALID_INPUT_DATA":          APINGExceptionCode_InvalidInputData,
+	"INVALID_SESSION_INFORMATION": APINGExceptionCode_InvalidSessionInformation,
+	"NO_APP_KEY":                  APINGExceptionCode_NoAppKey,
+	"NO_SESSION":                  APINGExceptionCode_NoSession,
+	"UNEXPECTED_ERROR":            APINGExceptionCode_UnexpectedError,
+	"INVALID_APP_KEY":             APINGExceptionCode_InvalidAppKey,
+	"TOO_MANY_REQUESTS":           APINGExceptionCode_TooManyRequests,
+	"SERVICE_BUSY":                APINGExceptionCode_ServiceBusy,
+	"TIMEOUT_ERROR":               APINGExceptionCode_TimeoutError,
+	"REQUEST_SIZE_EXCEEDS_LIMIT":  APINGExceptionCode_RequestSizeExceedsLimit,
+	"ACCESS_DENIED":               APINGExceptionCode_AccessDenied,
 }
 
 // MarshalJSON marshals the enum as a quoted json string
-func (apinge APINGException) MarshalJSON() ([]byte, error) {
-	elem, ok := aPINGExceptionToString[apinge]
+func (apingec APINGExceptionCode) MarshalJSON() ([]byte, error) {
+	elem, ok := aPINGExceptionCodeToString[apingec]
 	if ok {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
@@ -1540,7 +1540,7 @@ func (apinge APINGException) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
-func (apinge *APINGException) UnmarshalJSON(data []byte) error {
+func (apingec *APINGExceptionCode) UnmarshalJSON(data []byte) error {
 	var j string
 	err := json.Unmarshal(data, &j)
 	if err != nil {
@@ -1548,6 +1548,6 @@ func (apinge *APINGException) UnmarshalJSON(data []byte) error {
 	}
 	// Note that if the string cannot be found then it will be set to the zero value.
 	// Change this to actually return an error if it can't be found
-	*apinge = aPINGExceptionToEnum[j]
+	*apingec = aPINGExceptionCodeToEnum[j]
 	return nil
 }

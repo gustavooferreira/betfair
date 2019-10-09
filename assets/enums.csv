@@ -219,7 +219,7 @@ CLASSIC,Price ladder increments traditionally used for Odds Markets.
 FINEST,"Price ladder with the finest available increment, traditionally used for Asian Handicap markets."
 LINE_RANGE,Price ladder used for LINE markets. Refer to MarketLineRangeInfo for more details.
 
-APINGException
+APINGExceptionCode
 Value,Description
 TOO_MUCH_DATA,"The operation requested too much data, exceeding the Market Data Request Limits."
 INVALID_INPUT_DATA,The data input is invalid. A specific description is returned via errorDetails as shown below.
