@@ -7,19 +7,52 @@ import (
 	"fmt"
 )
 
+
 {{ range . }}
+{{ $elem := . }}
 // {{ .Type }} ENUM
 
 type {{ .Type }} int
 
 const (
-{{ $type := .Type }}
 {{ range $index, $value := .Enums }}
-    {{ $type }}_{{ gfTitle $value }}{{ if eq $index 0 }} {{ $type }} = iota{{ end }}{{ end }}
+    {{ $elem.Type }}_{{ index $elem.EnumsPascalCase $index}}{{ if eq $index 0 }} {{ $elem.Type }} = iota{{ end }}{{ end }}
 )
 
-func (e {{ .Type }}) String() string {
-	return {{ .Type }}ToString[e]
+func ({{ .VarName }} {{ .Type }}) String() string {
+	return {{ .TypeCamel }}ToString[{{ .VarName }}]
+}
+
+var {{ .TypeCamel }}ToString = map[{{ .Type }}]string{ {{ range $index, $value := .Enums }}
+{{ $elem.Type }}_{{ index $elem.EnumsPascalCase $index}}: "{{ $value }}",{{ end }}
+
+}
+
+var {{ .TypeCamel }}ToEnum = map[string]{{ .Type }}{ {{ range $index, $value := .Enums }}
+"{{ $value }}": {{ $elem.Type }}_{{ index $elem.EnumsPascalCase $index}},{{ end }}
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func ({{ .VarName }} {{ .Type }}) MarshalJSON() ([]byte, error) {
+	elem, ok := {{ .TypeCamel }}ToString[{{ .VarName }}]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func ({{ .VarName }} *{{ .Type }}) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+	// Note that if the string cannot be found then it will be set to the zero value.
+	// Change this to actually return an error if it can't be found
+	*{{ .VarName }} = {{ .TypeCamel }}ToEnum[j]
+	return nil
 }
 
 {{ end }}
