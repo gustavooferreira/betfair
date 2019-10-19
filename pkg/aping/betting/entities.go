@@ -1,4 +1,4 @@
-package aping
+package betting
 
 import (
 	"time"

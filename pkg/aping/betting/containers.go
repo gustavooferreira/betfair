@@ -1,4 +1,4 @@
-package aping
+package betting
 
 type listMarketCatalogueReqContainer struct {
 	Filter           MarketFilter        `json:"filter"`
