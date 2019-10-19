@@ -1,26 +1,24 @@
 .PHONY: build
 build:
-	@go build
-	# @go build github.com/gustavooferreira/horsebet/pkg/betfair
-
+	@go build ./...
 
 .PHONY: test
 test:
-	@go test -v github.com/gustavooferreira/horsebet/pkg/betfair
+	@go test -v ./...
 
 
 .PHONY: coverage
 coverage:
-	@go test -cover
+	@go test -cover ./...
 
 
 .PHONY: lint
 lint:
-	@go vet
+	@go vet ./...
 
 .PHONY: codegen
 codegen:
-	@go run scripts/gen_enums.go
+	@go run scripts/gen_betting_enums.go
 
 .PHONY: docs-server
 docs-server:

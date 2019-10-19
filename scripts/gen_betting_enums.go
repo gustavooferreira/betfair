@@ -1,4 +1,4 @@
-// Generate betfair enums.
+// Generate betfair betting enums.
 package main
 
 import (
@@ -27,7 +27,7 @@ type EnumsInfoArray []EnumsInfo
 func main() {
 	// Revise this
 	// filePath := os.Args[1]
-	filePath := "assets/enums.csv"
+	filePath := "assets/enums_data/betting.csv"
 
 	results := readCSV(filePath)
 
@@ -38,7 +38,7 @@ func main() {
 	// Generate from template
 	buf := genCode(results)
 
-	fOut, err := os.Create("enums.go")
+	fOut, err := os.Create("pkg/aping/betting/enums.go")
 	if err != nil {
 		log.Fatalf("error: %s\n", err)
 	}
@@ -151,7 +151,7 @@ func genCode(data EnumsInfoArray) *bytes.Buffer {
 
 	// tmpl := template.Must(template.ParseFiles("assets/templates/enums.go.tmpl"))
 
-	tmpl := template.New("enums.go.tmpl")
+	tmpl := template.New("betting_enums.go.tmpl")
 
 	// tmpl = tmpl.Funcs(template.FuncMap{
 	// 	"gfTitle": func(str string) string {
@@ -161,7 +161,7 @@ func genCode(data EnumsInfoArray) *bytes.Buffer {
 	// 	},
 	// })
 
-	tmpl, err := tmpl.ParseFiles("assets/templates/enums.go.tmpl")
+	tmpl, err := tmpl.ParseFiles("assets/templates/betting_enums.go.tmpl")
 	if err != nil {
 		log.Fatalf("error: %s\n", err)
 	}
