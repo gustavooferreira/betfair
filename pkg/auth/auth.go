@@ -6,20 +6,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 )
 
 const loginURL string = "https://identitysso-cert.betfair.com/api/certlogin"
 const keepAliveURL string = "https://identitysso.betfair.com/api/keepAlive"
+const logoutURL string = "https://identitysso.betfair.com/api/logout"
 
 type LoginResponse struct {
 	LoginStatus  string `json:"loginStatus"`
 	SessionToken string `json:"SessionToken"`
 }
 
-type KeepAliveResponse struct {
+type AuthResponse struct {
 	Token   string `json:"token"`
 	Product string `json:"product"`
 	Status  string `json:"status"`
@@ -33,22 +33,25 @@ type AuthService struct {
 	certFile          string
 	keyFile           string
 	SessionToken      string
-	connectionTimeout int
+	connectionTimeout uint
 }
 
-func NewAuthService(appKey string, username string, password string, certFile string, keyFile string) (AuthService, error) {
-	bas := AuthService{AppKey: appKey, username: username, password: password, certFile: certFile, keyFile: keyFile, connectionTimeout: 3}
+// NewAuthService creates a AuthService struct.
+func NewAuthService(appKey string, username string, password string, certFile string, keyFile string, connectionTimeout uint) AuthService {
+	as := AuthService{AppKey: appKey, username: username, password: password, certFile: certFile, keyFile: keyFile, connectionTimeout: connectionTimeout}
 
-	return bas, nil
+	return as
 }
 
-func (as *AuthService) Login() (sessionToken string, err error) {
+// Login authenticates account on the betfair servers and stores valid session token
+// to be used on later requests.
+func (as *AuthService) Login() (err error) {
 	payload := "username=" + as.username + "&password=" + as.password
 
 	// Load client cert
 	cert, err := tls.LoadX509KeyPair(as.certFile, as.keyFile)
 	if err != nil {
-		return sessionToken, err
+		return err
 	}
 
 	// Setup HTTPS client
@@ -59,34 +62,42 @@ func (as *AuthService) Login() (sessionToken string, err error) {
 
 	req, err := http.NewRequest("POST", loginURL, bytes.NewBuffer([]byte(payload)))
 	if err != nil {
-		return sessionToken, err
+		return err
 	}
 
 	req.Header.Set("X-Application", as.AppKey)
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
 
 	resp, err := httpClient.Do(req)
-
 	if err != nil {
-		log.Fatal(fmt.Sprintf("error - Msg: %s", err.Error()))
-		return sessionToken, err
+		return err
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
-		log.Fatal(fmt.Sprintf("unexpected status code received: %d", resp.StatusCode))
-		return sessionToken, err
+		return err
 	}
 
 	loginResp := LoginResponse{}
-	json.NewDecoder(resp.Body).Decode(&loginResp)
-	resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&loginResp)
+	if err != nil {
+		return err
+	}
+
+	if loginResp.LoginStatus != "SUCCESS" || loginResp.SessionToken == "" {
+		return fmt.Errorf("failed login - login status: %s", loginResp.LoginStatus)
+	}
 
 	as.SessionToken = loginResp.SessionToken
-	return loginResp.SessionToken, nil
+	return nil
 }
 
+// KeepAlive extends the session timeout period.
+// At the moment the international (.com) Exchange the current session time is 8 hours.
+// If you don't call Keep Alive within the specified timeout period, the session will expire.
+// Note:  Session times aren't determined or extended based on API activity.
 func (as AuthService) KeepAlive() error {
-
 	if as.SessionToken == "" {
 		return errors.New("No session token present")
 	}
@@ -103,22 +114,66 @@ func (as AuthService) KeepAlive() error {
 	req.Header.Set("accept", "application/json")
 
 	resp, err := httpClient.Do(req)
-
 	if err != nil {
-		log.Fatal(fmt.Sprintf("error - Msg: %s", err.Error()))
-		// return err
+		return err
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Fatal(fmt.Sprintf("unexpected status code received: %d", resp.StatusCode))
-		// return err
+		return err
 	}
 
-	keepaliveResp := KeepAliveResponse{}
-	json.NewDecoder(resp.Body).Decode(&keepaliveResp)
-	resp.Body.Close()
+	keepaliveResp := AuthResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&keepaliveResp)
+	if err != nil {
+		return err
+	}
 
-	fmt.Printf("KeepAlive response: %+v\n", keepaliveResp)
+	if keepaliveResp.Status != "SUCCESS" {
+		return fmt.Errorf("failed keep alive request: %s", keepaliveResp.Error)
+	}
+
+	return nil
+}
+
+// Logout terminates current session.
+func (as *AuthService) Logout() error {
+	if as.SessionToken == "" {
+		return errors.New("No session token present")
+	}
+
+	httpClient := http.Client{Timeout: time.Second * time.Duration(as.connectionTimeout)}
+
+	req, err := http.NewRequest("GET", logoutURL, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("X-Application", as.AppKey)
+	req.Header.Set("X-Authentication", as.SessionToken)
+	req.Header.Set("accept", "application/json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return err
+	}
+
+	logoutResp := AuthResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&logoutResp)
+	if err != nil {
+		return err
+	}
+
+	if logoutResp.Status != "SUCCESS" {
+		return fmt.Errorf("failed logout request: %s", logoutResp.Error)
+	}
 
 	return nil
 }
