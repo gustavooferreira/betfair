@@ -60,7 +60,7 @@ func config() (string, string, string, string, string, uint) {
 		log.Fatalln("Env var BF_KEYFILE missing")
 	}
 
-	var connectionTimeout uint = 5
+	var connectionTimeout uint = 10
 
 	return AppKey, username, password, certFile, keyFile, connectionTimeout
 }
