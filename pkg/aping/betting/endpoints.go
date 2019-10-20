@@ -9,20 +9,17 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/gustavooferreira/betfair/pkg/aping"
 )
 
-const ukBettingEndpoint = "https://api.betfair.com/rest/v1.0/"
+const ukBettingEndpoint = "https://api.betfair.com/exchange/betting/rest/v1.0/"
 
 const (
-	listEventTypesEndpoint      = ukBettingEndpoint + "listEventTypes/"
 	listMarketCatalogueEndpoint = ukBettingEndpoint + "listMarketCatalogue/"
 	listMarketBookEndpoint      = ukBettingEndpoint + "listMarketBook/"
 	placeOrdersEndpoint         = ukBettingEndpoint + "placeOrders/"
 )
-
-var ukEndpoints = map[string]string{
-	"account": "https://api.betfair.com/exchange/account/rest/v1.0/",
-}
 
 type BetfairAPINGError struct {
 	ErrorCode    APINGExceptionCode
@@ -33,21 +30,14 @@ func (e *BetfairAPINGError) Error() string {
 	return fmt.Sprintf("Betfair APING error: %s - Details: %s", e.ErrorCode, e.ErrorDetails)
 }
 
-type BetfairAPI struct {
-	httpClient   *http.Client
-	AppKey       string
-	SessionToken string
-}
-
-func NewBetfairAPI(httpClient *http.Client, appKey string, sessionToken string) BetfairAPI {
-	bapi := BetfairAPI{httpClient: httpClient, AppKey: appKey, SessionToken: sessionToken}
-	return bapi
+type BettingAPI struct {
+	aping.BetfairAPI
 }
 
 // ListMarketCatalogue lists the market catalogue
 // Only marketFilter and maxResults is mandatory
 // All the other arguments are optional and therefore they are pointers so the user can pass nil in case they don't want to set them
-func (b BetfairAPI) ListMarketCatalogue(marketFilter MarketFilter, mp *[]MarketProjection, marketSort *MarketSort, maxResults uint) ([]MarketCatalogue, error) {
+func (b BettingAPI) ListMarketCatalogue(marketFilter MarketFilter, mp *[]MarketProjection, marketSort *MarketSort, maxResults uint) ([]MarketCatalogue, error) {
 	lrc := listMarketCatalogueReqContainer{Filter: marketFilter, MarketProjection: mp,
 		Sort: marketSort, MaxResults: maxResults}
 
@@ -77,7 +67,7 @@ func (b BetfairAPI) ListMarketCatalogue(marketFilter MarketFilter, mp *[]MarketP
 }
 
 // ListMarketBook lists dynamic data about markets
-func (b BetfairAPI) ListMarketBook(marketIDs []string) ([]MarketBook, error) {
+func (b BettingAPI) ListMarketBook(marketIDs []string) ([]MarketBook, error) {
 	lrc := listMarketBookReqContainer{MarketIDs: marketIDs}
 
 	lrcBytes, err := json.Marshal(lrc)
@@ -106,7 +96,7 @@ func (b BetfairAPI) ListMarketBook(marketIDs []string) ([]MarketBook, error) {
 }
 
 // PlaceOrders puts back/lay bets on the market
-func (b BetfairAPI) PlaceOrders(marketID string, instructions []PlaceInstruction) (PlaceExecutionReport, error) {
+func (b BettingAPI) PlaceOrders(marketID string, instructions []PlaceInstruction) (PlaceExecutionReport, error) {
 	prc := placeOrderReqContainer{MarketID: marketID, Instructions: instructions}
 
 	prcBytes, err := json.Marshal(prc)
@@ -134,7 +124,7 @@ func (b BetfairAPI) PlaceOrders(marketID string, instructions []PlaceInstruction
 	return per, nil
 }
 
-func (b BetfairAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
+func (b BettingAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
 
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
@@ -146,7 +136,7 @@ func (b BetfairAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set("accept", "application/json")
 
-	resp, err := b.httpClient.Do(req)
+	resp, err := b.HttpClient.Do(req)
 
 	if err != nil {
 		return nil, err
