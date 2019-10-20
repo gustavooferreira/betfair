@@ -16,7 +16,7 @@ type {{ .Type }} int
 
 const (
 {{ range $index, $value := .Enums }}
-    {{ $elem.Type }}_{{ index $elem.EnumsPascalCase $index}}{{ if eq $index 0 }} {{ $elem.Type }} = iota{{ end }}{{ end }}
+    {{ $elem.Type }}_{{ index $elem.EnumsPascalCase $index}}{{ if eq $index 0 }} {{ $elem.Type }} = iota + 1{{ end }}{{ end }}
 )
 
 func ({{ .VarName }} {{ .Type }}) String() string {

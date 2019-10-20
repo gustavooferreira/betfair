@@ -12,7 +12,7 @@ import (
 type MarketProjection int
 
 const (
-	MarketProjection_Competition MarketProjection = iota
+	MarketProjection_Competition MarketProjection = iota + 1
 	MarketProjection_Event
 	MarketProjection_EventType
 	MarketProjection_MarketStartTime
@@ -77,7 +77,7 @@ func (mp *MarketProjection) UnmarshalJSON(data []byte) error {
 type PriceData int
 
 const (
-	PriceData_SpAvailable PriceData = iota
+	PriceData_SpAvailable PriceData = iota + 1
 	PriceData_SpTraded
 	PriceData_ExBestOffers
 	PriceData_ExAllOffers
@@ -136,7 +136,7 @@ func (pd *PriceData) UnmarshalJSON(data []byte) error {
 type MatchProjection int
 
 const (
-	MatchProjection_NoRollup MatchProjection = iota
+	MatchProjection_NoRollup MatchProjection = iota + 1
 	MatchProjection_RolledUpByPrice
 	MatchProjection_RolledUpByAvgPrice
 )
@@ -189,7 +189,7 @@ func (mp *MatchProjection) UnmarshalJSON(data []byte) error {
 type OrderProjection int
 
 const (
-	OrderProjection_All OrderProjection = iota
+	OrderProjection_All OrderProjection = iota + 1
 	OrderProjection_Executable
 	OrderProjection_ExecutionComplete
 )
@@ -242,7 +242,7 @@ func (op *OrderProjection) UnmarshalJSON(data []byte) error {
 type MarketStatus int
 
 const (
-	MarketStatus_Inactive MarketStatus = iota
+	MarketStatus_Inactive MarketStatus = iota + 1
 	MarketStatus_Open
 	MarketStatus_Suspended
 	MarketStatus_Closed
@@ -298,7 +298,7 @@ func (ms *MarketStatus) UnmarshalJSON(data []byte) error {
 type RunnerStatus int
 
 const (
-	RunnerStatus_Active RunnerStatus = iota
+	RunnerStatus_Active RunnerStatus = iota + 1
 	RunnerStatus_Winner
 	RunnerStatus_Loser
 	RunnerStatus_Placed
@@ -363,7 +363,7 @@ func (rs *RunnerStatus) UnmarshalJSON(data []byte) error {
 type TimeGranularity int
 
 const (
-	TimeGranularity_Days TimeGranularity = iota
+	TimeGranularity_Days TimeGranularity = iota + 1
 	TimeGranularity_Hours
 	TimeGranularity_Minutes
 )
@@ -416,7 +416,7 @@ func (tg *TimeGranularity) UnmarshalJSON(data []byte) error {
 type Side int
 
 const (
-	Side_Back Side = iota
+	Side_Back Side = iota + 1
 	Side_Lay
 )
 
@@ -466,7 +466,7 @@ func (s *Side) UnmarshalJSON(data []byte) error {
 type OrderStatus int
 
 const (
-	OrderStatus_Pending OrderStatus = iota
+	OrderStatus_Pending OrderStatus = iota + 1
 	OrderStatus_ExecutionComplete
 	OrderStatus_Executable
 	OrderStatus_Expired
@@ -522,7 +522,7 @@ func (os *OrderStatus) UnmarshalJSON(data []byte) error {
 type OrderBy int
 
 const (
-	OrderBy_ByBet OrderBy = iota
+	OrderBy_ByBet OrderBy = iota + 1
 	OrderBy_ByMarket
 	OrderBy_ByMatchTime
 	OrderBy_ByPlaceTime
@@ -584,7 +584,7 @@ func (ob *OrderBy) UnmarshalJSON(data []byte) error {
 type SortDir int
 
 const (
-	SortDir_EarliestToLatest SortDir = iota
+	SortDir_EarliestToLatest SortDir = iota + 1
 	SortDir_LatestToEarliest
 )
 
@@ -634,7 +634,7 @@ func (sd *SortDir) UnmarshalJSON(data []byte) error {
 type OrderType int
 
 const (
-	OrderType_Limit OrderType = iota
+	OrderType_Limit OrderType = iota + 1
 	OrderType_LimitOnClose
 	OrderType_MarketOnClose
 )
@@ -687,7 +687,7 @@ func (ot *OrderType) UnmarshalJSON(data []byte) error {
 type MarketSort int
 
 const (
-	MarketSort_MinimumTraded MarketSort = iota
+	MarketSort_MinimumTraded MarketSort = iota + 1
 	MarketSort_MaximumTraded
 	MarketSort_MinimumAvailable
 	MarketSort_MaximumAvailable
@@ -749,7 +749,7 @@ func (ms *MarketSort) UnmarshalJSON(data []byte) error {
 type MarketBettingType int
 
 const (
-	MarketBettingType_Odds MarketBettingType = iota
+	MarketBettingType_Odds MarketBettingType = iota + 1
 	MarketBettingType_Line
 	MarketBettingType_Range
 	MarketBettingType_AsianHandicapDoubleLine
@@ -811,7 +811,7 @@ func (mbt *MarketBettingType) UnmarshalJSON(data []byte) error {
 type ExecutionReportStatus int
 
 const (
-	ExecutionReportStatus_Success ExecutionReportStatus = iota
+	ExecutionReportStatus_Success ExecutionReportStatus = iota + 1
 	ExecutionReportStatus_Failure
 	ExecutionReportStatus_ProcessedWithErrors
 	ExecutionReportStatus_Timeout
@@ -867,7 +867,7 @@ func (ers *ExecutionReportStatus) UnmarshalJSON(data []byte) error {
 type ExecutionReportErrorCode int
 
 const (
-	ExecutionReportErrorCode_ErrorInMatcher ExecutionReportErrorCode = iota
+	ExecutionReportErrorCode_ErrorInMatcher ExecutionReportErrorCode = iota + 1
 	ExecutionReportErrorCode_ProcessedWithErrors
 	ExecutionReportErrorCode_BetActionError
 	ExecutionReportErrorCode_InvalidAccountState
@@ -974,7 +974,7 @@ func (erec *ExecutionReportErrorCode) UnmarshalJSON(data []byte) error {
 type PersistenceType int
 
 const (
-	PersistenceType_Lapse PersistenceType = iota
+	PersistenceType_Lapse PersistenceType = iota + 1
 	PersistenceType_Persist
 	PersistenceType_MarketOnClose
 )
@@ -1027,7 +1027,7 @@ func (pt *PersistenceType) UnmarshalJSON(data []byte) error {
 type InstructionReportStatus int
 
 const (
-	InstructionReportStatus_Success InstructionReportStatus = iota
+	InstructionReportStatus_Success InstructionReportStatus = iota + 1
 	InstructionReportStatus_Failure
 	InstructionReportStatus_Timeout
 )
@@ -1080,7 +1080,7 @@ func (irs *InstructionReportStatus) UnmarshalJSON(data []byte) error {
 type InstructionReportErrorCode int
 
 const (
-	InstructionReportErrorCode_InvalidBetSize InstructionReportErrorCode = iota
+	InstructionReportErrorCode_InvalidBetSize InstructionReportErrorCode = iota + 1
 	InstructionReportErrorCode_InvalidRunner
 	InstructionReportErrorCode_BetTakenOrLapsed
 	InstructionReportErrorCode_BetInProgress
@@ -1205,7 +1205,7 @@ func (irec *InstructionReportErrorCode) UnmarshalJSON(data []byte) error {
 type RollupModel int
 
 const (
-	RollupModel_Stake RollupModel = iota
+	RollupModel_Stake RollupModel = iota + 1
 	RollupModel_Payout
 	RollupModel_ManagedLiability
 	RollupModel_None
@@ -1261,7 +1261,7 @@ func (rm *RollupModel) UnmarshalJSON(data []byte) error {
 type GroupBy int
 
 const (
-	GroupBy_EventType GroupBy = iota
+	GroupBy_EventType GroupBy = iota + 1
 	GroupBy_Event
 	GroupBy_Market
 	GroupBy_Side
@@ -1320,7 +1320,7 @@ func (gb *GroupBy) UnmarshalJSON(data []byte) error {
 type BetStatus int
 
 const (
-	BetStatus_Settled BetStatus = iota
+	BetStatus_Settled BetStatus = iota + 1
 	BetStatus_Voided
 	BetStatus_Lapsed
 	BetStatus_Cancelled
@@ -1376,7 +1376,7 @@ func (bs *BetStatus) UnmarshalJSON(data []byte) error {
 type MarketType int
 
 const (
-	MarketType_A MarketType = iota
+	MarketType_A MarketType = iota + 1
 	MarketType_L
 	MarketType_O
 	MarketType_R
@@ -1435,7 +1435,7 @@ func (mt *MarketType) UnmarshalJSON(data []byte) error {
 type TimeInForce int
 
 const (
-	TimeInForce_FillOrKill TimeInForce = iota
+	TimeInForce_FillOrKill TimeInForce = iota + 1
 )
 
 func (tif TimeInForce) String() string {
@@ -1482,7 +1482,7 @@ func (tif *TimeInForce) UnmarshalJSON(data []byte) error {
 type BetTargetType int
 
 const (
-	BetTargetType_BackersProfit BetTargetType = iota
+	BetTargetType_BackersProfit BetTargetType = iota + 1
 	BetTargetType_Payout
 )
 
@@ -1532,7 +1532,7 @@ func (btt *BetTargetType) UnmarshalJSON(data []byte) error {
 type PriceLadderType int
 
 const (
-	PriceLadderType_Classic PriceLadderType = iota
+	PriceLadderType_Classic PriceLadderType = iota + 1
 	PriceLadderType_Finest
 	PriceLadderType_LineRange
 )
@@ -1585,7 +1585,7 @@ func (plt *PriceLadderType) UnmarshalJSON(data []byte) error {
 type APINGExceptionCode int
 
 const (
-	APINGExceptionCode_TooMuchData APINGExceptionCode = iota
+	APINGExceptionCode_TooMuchData APINGExceptionCode = iota + 1
 	APINGExceptionCode_InvalidInputData
 	APINGExceptionCode_InvalidSessionInformation
 	APINGExceptionCode_NoAppKey
