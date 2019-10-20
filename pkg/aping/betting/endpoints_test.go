@@ -9,7 +9,7 @@ import (
 
 func TestAbs(t *testing.T) {
 
-	bs := BetfairAPI{AppKey: "jI7Ws9goNGfK5gGs", SessionToken: "ocTn3RAhj0PIUpb+LrWTK5dyp9OZhhyzM/s3HG7W0ok="}
+	bs := BetfairAPI{AppKey: "", SessionToken: ""}
 
 	from := time.Date(2019, 8, 21, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2019, 8, 21, 23, 55, 0, 0, time.UTC)
