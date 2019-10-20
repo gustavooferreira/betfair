@@ -6,10 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 
+	"github.com/gustavooferreira/betfair/internal/utils"
 	"github.com/gustavooferreira/betfair/pkg/aping"
 )
 
@@ -21,37 +20,39 @@ const (
 	placeOrdersEndpoint         = ukBettingEndpoint + "placeOrders/"
 )
 
-type BetfairAPINGError struct {
+type BettingAPIError struct {
 	ErrorCode    APINGExceptionCode
 	ErrorDetails string
+	RequestUUID  string
 }
 
-func (e *BetfairAPINGError) Error() string {
-	return fmt.Sprintf("Betfair APING error: %s - Details: %s", e.ErrorCode, e.ErrorDetails)
+func (e *BettingAPIError) Error() string {
+	return fmt.Sprintf("Betfair APING error: %s - Details: %s - RequestUUID: %s", e.ErrorCode, e.ErrorDetails, e.RequestUUID)
 }
 
 type BettingAPI struct {
 	aping.BetfairAPI
 }
 
-// ListMarketCatalogue lists the market catalogue
-// Only marketFilter and maxResults is mandatory
+func NewBettingAPI(bapi aping.BetfairAPI) BettingAPI {
+	bettingAPI := BettingAPI{bapi}
+	return bettingAPI
+}
+
+// ListMarketCatalogue lists the market catalogue.
+// Note: listMarketCatalogue does not return markets that are CLOSED.
+// Only filter and maxResults are mandatory.
 // All the other arguments are optional and therefore they are pointers so the user can pass nil in case they don't want to set them
-func (b BettingAPI) ListMarketCatalogue(marketFilter MarketFilter, mp *[]MarketProjection, marketSort *MarketSort, maxResults uint) ([]MarketCatalogue, error) {
-	lrc := listMarketCatalogueReqContainer{Filter: marketFilter, MarketProjection: mp,
-		Sort: marketSort, MaxResults: maxResults}
+func (b BettingAPI) ListMarketCatalogue(filter MarketFilter, mp *[]MarketProjection, marketSort *MarketSort, maxResults uint, locale *string) ([]MarketCatalogue, error) {
+	lrc := listMarketCatalogueReqContainer{Filter: filter, MarketProjection: mp, Sort: marketSort, MaxResults: maxResults, Locale: locale}
 
 	lrcBytes, err := json.Marshal(lrc)
 	if err != nil {
-		log.Fatal("error while marshalling")
+		log.Fatal("error while marshalling request")
 	}
 
 	payload := bytes.NewBuffer(lrcBytes)
-
-	log.Printf("Request body: %s", payload)
-
 	response, err := b.sendRequest(listMarketCatalogueEndpoint, payload)
-
 	if err != nil {
 		return nil, err
 	}
@@ -66,21 +67,17 @@ func (b BettingAPI) ListMarketCatalogue(marketFilter MarketFilter, mp *[]MarketP
 	return mcs, nil
 }
 
-// ListMarketBook lists dynamic data about markets
+// ListMarketBook lists dynamic data about markets.
 func (b BettingAPI) ListMarketBook(marketIDs []string) ([]MarketBook, error) {
 	lrc := listMarketBookReqContainer{MarketIDs: marketIDs}
 
 	lrcBytes, err := json.Marshal(lrc)
 	if err != nil {
-		log.Fatal("error while marshalling")
+		log.Fatal("error while marshalling request")
 	}
 
 	payload := bytes.NewBuffer(lrcBytes)
-
-	log.Printf("Request body: %s", payload)
-
 	response, err := b.sendRequest(listMarketBookEndpoint, payload)
-
 	if err != nil {
 		return nil, err
 	}
@@ -101,15 +98,11 @@ func (b BettingAPI) PlaceOrders(marketID string, instructions []PlaceInstruction
 
 	prcBytes, err := json.Marshal(prc)
 	if err != nil {
-		log.Fatal("error while marshalling")
+		log.Fatal("error while marshalling request")
 	}
 
 	payload := bytes.NewBuffer(prcBytes)
-
-	log.Printf("Request body: %s", payload)
-
 	response, err := b.sendRequest(placeOrdersEndpoint, payload)
-
 	if err != nil {
 		return PlaceExecutionReport{}, err
 	}
@@ -126,51 +119,21 @@ func (b BettingAPI) PlaceOrders(marketID string, instructions []PlaceInstruction
 
 func (b BettingAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
 
-	req, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("X-Application", b.AppKey)
-	req.Header.Set("X-Authentication", b.SessionToken)
-	req.Header.Set("content-type", "application/json")
-	req.Header.Set("accept", "application/json")
-
-	resp, err := b.HttpClient.Do(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	buf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+	respBody, err := utils.SendRequest(b.HttpClient, "POST", b.AppKey, b.SessionToken, url, body)
 
 	// Encapsulate error here!
-	if resp.StatusCode != 200 {
-
+	if errB, ok := err.(*utils.BetfairAPIError); ok {
 		bapie := BetfairAPIError{}
-		err = json.Unmarshal(buf, &bapie)
+		err = json.Unmarshal([]byte(errB.Body), &bapie)
 		if err != nil {
-			return nil, errors.New("error while unmarshalling response error response - make this better")
+			return nil, errors.New("error while unmarshalling APINGException response")
 		}
 
-		log.Printf("%+v\n", bapie)
-
-		// Could be empty too:
-		// Example:
-		// "{"faultcode":"Client","faultstring":"DSC-0018","detail":{}}"
-
-		if bapie.Detail.APINGException.ErrorCode == APINGExceptionCode_InvalidAppKey {
-			log.Println("YOOOOOOLOOOOOO")
-		}
-
-		// return nil, errors.New(resp.Status)
-		return nil, &BetfairAPINGError{ErrorCode: bapie.Detail.APINGException.ErrorCode,
-			ErrorDetails: bapie.Detail.APINGException.ErrorDetails}
+		return nil, &BettingAPIError{ErrorCode: bapie.Detail.APINGException.ErrorCode,
+			ErrorDetails: bapie.Detail.APINGException.ErrorDetails, RequestUUID: bapie.Detail.APINGException.RequestUUID}
+	} else if err != nil {
+		return nil, err
 	}
 
-	return buf, nil
+	return respBody, nil
 }

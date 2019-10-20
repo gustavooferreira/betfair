@@ -5,6 +5,7 @@ type listMarketCatalogueReqContainer struct {
 	MarketProjection *[]MarketProjection `json:"marketProjection,omitempty"`
 	Sort             *MarketSort         `json:"sort, omitempty"`
 	MaxResults       uint                `json:"maxResults"`
+	Locale           *string             `json:"locale"`
 }
 
 type listMarketBookReqContainer struct {
