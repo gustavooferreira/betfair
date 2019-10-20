@@ -49,9 +49,13 @@ func ({{ .VarName }} *{{ .Type }}) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*{{ .VarName }} = {{ .TypeCamel }}ToEnum[j]
+
+	result, ok := {{ .TypeCamel }}ToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*{{ .VarName }} = result
 	return nil
 }
 

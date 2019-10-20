@@ -62,9 +62,13 @@ func (mp *MarketProjection) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*mp = marketProjectionToEnum[j]
+
+	result, ok := marketProjectionToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*mp = result
 	return nil
 }
 
@@ -117,9 +121,13 @@ func (pd *PriceData) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*pd = priceDataToEnum[j]
+
+	result, ok := priceDataToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*pd = result
 	return nil
 }
 
@@ -166,9 +174,13 @@ func (mp *MatchProjection) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*mp = matchProjectionToEnum[j]
+
+	result, ok := matchProjectionToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*mp = result
 	return nil
 }
 
@@ -215,9 +227,13 @@ func (op *OrderProjection) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*op = orderProjectionToEnum[j]
+
+	result, ok := orderProjectionToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*op = result
 	return nil
 }
 
@@ -267,9 +283,13 @@ func (ms *MarketStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*ms = marketStatusToEnum[j]
+
+	result, ok := marketStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*ms = result
 	return nil
 }
 
@@ -328,9 +348,13 @@ func (rs *RunnerStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*rs = runnerStatusToEnum[j]
+
+	result, ok := runnerStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*rs = result
 	return nil
 }
 
@@ -377,9 +401,13 @@ func (tg *TimeGranularity) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*tg = timeGranularityToEnum[j]
+
+	result, ok := timeGranularityToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*tg = result
 	return nil
 }
 
@@ -423,9 +451,13 @@ func (s *Side) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*s = sideToEnum[j]
+
+	result, ok := sideToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*s = result
 	return nil
 }
 
@@ -475,9 +507,13 @@ func (os *OrderStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*os = orderStatusToEnum[j]
+
+	result, ok := orderStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*os = result
 	return nil
 }
 
@@ -533,9 +569,13 @@ func (ob *OrderBy) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*ob = orderByToEnum[j]
+
+	result, ok := orderByToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*ob = result
 	return nil
 }
 
@@ -579,9 +619,13 @@ func (sd *SortDir) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*sd = sortDirToEnum[j]
+
+	result, ok := sortDirToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*sd = result
 	return nil
 }
 
@@ -628,9 +672,13 @@ func (ot *OrderType) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*ot = orderTypeToEnum[j]
+
+	result, ok := orderTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*ot = result
 	return nil
 }
 
@@ -686,9 +734,13 @@ func (ms *MarketSort) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*ms = marketSortToEnum[j]
+
+	result, ok := marketSortToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*ms = result
 	return nil
 }
 
@@ -744,9 +796,13 @@ func (mbt *MarketBettingType) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*mbt = marketBettingTypeToEnum[j]
+
+	result, ok := marketBettingTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*mbt = result
 	return nil
 }
 
@@ -796,9 +852,13 @@ func (ers *ExecutionReportStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*ers = executionReportStatusToEnum[j]
+
+	result, ok := executionReportStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*ers = result
 	return nil
 }
 
@@ -899,9 +959,13 @@ func (erec *ExecutionReportErrorCode) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*erec = executionReportErrorCodeToEnum[j]
+
+	result, ok := executionReportErrorCodeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*erec = result
 	return nil
 }
 
@@ -948,9 +1012,13 @@ func (pt *PersistenceType) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*pt = persistenceTypeToEnum[j]
+
+	result, ok := persistenceTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*pt = result
 	return nil
 }
 
@@ -997,9 +1065,13 @@ func (irs *InstructionReportStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*irs = instructionReportStatusToEnum[j]
+
+	result, ok := instructionReportStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*irs = result
 	return nil
 }
 
@@ -1118,9 +1190,13 @@ func (irec *InstructionReportErrorCode) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*irec = instructionReportErrorCodeToEnum[j]
+
+	result, ok := instructionReportErrorCodeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*irec = result
 	return nil
 }
 
@@ -1170,9 +1246,13 @@ func (rm *RollupModel) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*rm = rollupModelToEnum[j]
+
+	result, ok := rollupModelToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*rm = result
 	return nil
 }
 
@@ -1225,9 +1305,13 @@ func (gb *GroupBy) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*gb = groupByToEnum[j]
+
+	result, ok := groupByToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*gb = result
 	return nil
 }
 
@@ -1277,9 +1361,13 @@ func (bs *BetStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*bs = betStatusToEnum[j]
+
+	result, ok := betStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*bs = result
 	return nil
 }
 
@@ -1332,9 +1420,13 @@ func (mt *MarketType) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*mt = marketTypeToEnum[j]
+
+	result, ok := marketTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*mt = result
 	return nil
 }
 
@@ -1375,9 +1467,13 @@ func (tif *TimeInForce) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*tif = timeInForceToEnum[j]
+
+	result, ok := timeInForceToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*tif = result
 	return nil
 }
 
@@ -1421,9 +1517,13 @@ func (btt *BetTargetType) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*btt = betTargetTypeToEnum[j]
+
+	result, ok := betTargetTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*btt = result
 	return nil
 }
 
@@ -1470,9 +1570,13 @@ func (plt *PriceLadderType) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*plt = priceLadderTypeToEnum[j]
+
+	result, ok := priceLadderTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*plt = result
 	return nil
 }
 
@@ -1546,8 +1650,12 @@ func (apingec *APINGExceptionCode) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	// Note that if the string cannot be found then it will be set to the zero value.
-	// Change this to actually return an error if it can't be found
-	*apingec = aPINGExceptionCodeToEnum[j]
+
+	result, ok := aPINGExceptionCodeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*apingec = result
 	return nil
 }
