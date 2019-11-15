@@ -5,59 +5,92 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 )
 
-const serverHost string = "stream-api.betfair.com"
-const serverPort string = "443"
+const maxBufCapacity = 1024 * 1024
 
-type Client struct {
+type ESAClient struct {
 	AppKey       string
 	SessionToken string
 	conn         *tls.Conn
+
+	// RWMutex to access below values
 	buffer       *bufio.Scanner
 	connectionID string
-	idCount      uint32
 }
 
-func NewClient(appKey string, sessionToken string) Client {
-	client := Client{AppKey: appKey, SessionToken: sessionToken, idCount: 1}
+func NewESAClient(appKey string, sessionToken string) ESAClient {
+	client := ESAClient{AppKey: appKey, SessionToken: sessionToken}
 	return client
 }
 
-func (esaclient *Client) Connect() error {
-	var err error
-	esaclient.conn, err = tls.Dial("tcp", serverHost+":"+serverPort, nil)
+func (esaclient *ESAClient) Connect(serverHost string, serverPort uint) (err error) {
+
+	// If connectionID != "" then there is a connection already!
+	if esaclient.connectionID != "" {
+		return fmt.Errorf("connection already established")
+	}
+
+	// TODO: REMOVE THIS!
+	config := tls.Config{InsecureSkipVerify: true}
+	esaclient.conn, err = tls.Dial("tcp", serverHost+":"+strconv.Itoa(int(serverPort)), &config)
 	if err != nil {
 		return err
 	}
 
 	esaclient.buffer = bufio.NewScanner(esaclient.conn)
+	buf := make([]byte, maxBufCapacity)
+	esaclient.buffer.Buffer(buf, maxBufCapacity)
 
 	// FIXME: if it doesn't receive any message it just hangs ....
-	_ = esaclient.buffer.Scan()
-	message := esaclient.buffer.Text()
 
-	fmt.Println("Message from server: " + message)
+	ch := make(chan string)
 
-	cm := ConnectionMessage{}
-	json.Unmarshal([]byte(message), &cm)
+	go func() {
+		res := esaclient.buffer.Scan()
+		if !res {
+			// ERROR!!!
+			// esaclient.buffer.Err().Error()
+		}
+		message := esaclient.buffer.Text()
 
-	// validate operation is "connection"
-	if cm.Op != "connection" {
-		return fmt.Errorf("Got OP: %q instead of \"operation\"", cm.Op)
+		ch <- message
+	}()
+
+	select {
+	case message := <-ch:
+		fmt.Println("Exiting.")
+		fmt.Println("Message from server: " + message)
+
+		cm := ConnectionMessage{}
+		err = json.Unmarshal([]byte(message), &cm)
+		if err != nil {
+			// ERROR
+		}
+
+		// validate operation is "connection"
+		if cm.Op != "connection" {
+			return fmt.Errorf("Got OP: %q instead of \"operation\"", cm.Op)
+		}
+
+		// WLock!!
+		esaclient.connectionID = cm.ConnectionID
+	case <-time.After(2 * time.Second):
+		fmt.Println("Timed out, exiting.")
 	}
-
-	esaclient.connectionID = cm.ConnectionID
 
 	return nil
 }
 
-func (esaclient Client) Disconnect() {
+func (esaclient *ESAClient) Disconnect() {
+	esaclient.conn.Close()
 }
 
-func (esaclient *Client) Authenticate() error {
+func (esaclient *ESAClient) Authenticate(id uint32) error {
 
-	am := AuthenticationMessage{RequestMessage: RequestMessage{ID: esaclient.getNewID(), Op: "authentication"},
+	am := AuthenticationMessage{RequestMessage: RequestMessage{ID: id, Op: "authentication"},
 		AppKey:       esaclient.AppKey,
 		SessionToken: esaclient.SessionToken}
 
@@ -92,14 +125,8 @@ func (esaclient *Client) Authenticate() error {
 	return nil
 }
 
-func (esaclient *Client) getNewID() uint32 {
-	id := esaclient.idCount
-	esaclient.idCount++
-	return id
-}
-
-func (esaclient *Client) Subscribe(marketID string) error {
-	sm := SubscriptionMessage{RequestMessage: RequestMessage{Op: "marketSubscription", ID: esaclient.getNewID()},
+func (esaclient *ESAClient) Subscribe(marketID string, id uint32) error {
+	sm := SubscriptionMessage{RequestMessage: RequestMessage{Op: "marketSubscription", ID: id},
 		MarketFilter:     MarketFilter{MarketIDs: []string{marketID}},
 		MarketDataFilter: MarketDataFilter{LadderLevels: 3, Fields: []string{"EX_BEST_OFFERS", "EX_MARKET_DEF", "EX_TRADED_VOL", "EX_LTP"}}}
 
@@ -116,7 +143,7 @@ func (esaclient *Client) Subscribe(marketID string) error {
 	return nil
 }
 
-func (esaclient *Client) ReadMessages() (ResponseMessage, error) {
+func (esaclient *ESAClient) ReadMessage() (ResponseMessage, error) {
 
 	// Return object instead of string though!
 	if tokenAvail := esaclient.buffer.Scan(); tokenAvail {
@@ -143,7 +170,7 @@ func (esaclient *Client) ReadMessages() (ResponseMessage, error) {
 	return ResponseMessage{}, fmt.Errorf("unknown error")
 }
 
-func SendHeartbeat() {
+func (esaclient *ESAClient) Heartbeat(id uint32) {
 	// request = fmt.Sprintf(`{"op": "heartbeat", "id": 2}`)
 	// fmt.Println(request)
 	// fmt.Fprintf(conn, request+"\r\n")
