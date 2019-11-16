@@ -11,15 +11,16 @@ import (
 func main() {
 	log.Println("Script starting")
 
+	var err error
+
 	AppKey, username, password, certFile, keyFile, connectionTimeout := config()
 
 	as := auth.NewAuthService(AppKey, username, password, certFile, keyFile, connectionTimeout)
 
-	err := as.Login()
-	if err != nil {
-		log.Printf("Error while logging in: %s\n", err)
-
-	}
+	// err = as.Login()
+	// if err != nil {
+	// 	log.Printf("Error while logging in: %s\n", err)
+	// }
 
 	log.Println("Session token: ", as.SessionToken)
 
@@ -36,7 +37,7 @@ func main() {
 func streamStuff(as auth.AuthService) {
 	esaclient := exchangestream.NewESAClient(as.AppKey, as.SessionToken)
 
-	err := esaclient.Connect("127.0.0.1", 8080)
+	err := esaclient.Connect("127.0.0.1", 8080, true)
 
 	if err != nil {
 		log.Println("error while trying to connect")

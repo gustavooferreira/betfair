@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 )
 
 func main() {
@@ -49,15 +48,15 @@ func main() {
 }
 
 func handleClient(conn net.Conn) {
-	defer conn.Close()
+	// defer closeConn(conn)
 
-	msg := `{"op":"connection","connectionId":"002-230915140112-174"}`
+	msg := "{\"op\":\"connection\",\"connectionId\":\"002-230915140112-174\"}\r\n"
 	msgBytes := []byte(msg)
 
 	n, err := conn.Write(msgBytes[:20])
 	log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
 
-	time.Sleep(3 * time.Second)
+	// time.Sleep(3 * time.Second)
 
 	n, err = conn.Write(msgBytes[20:])
 	log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
@@ -81,7 +80,11 @@ func handleClient(conn net.Conn) {
 	// 		break
 	// 	}
 	// }
+}
+
+func closeConn(conn net.Conn) {
 	log.Println("server: conn: closed")
+	conn.Close()
 }
 
 func config() (string, string) {
