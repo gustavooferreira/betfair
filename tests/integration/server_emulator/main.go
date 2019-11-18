@@ -3,11 +3,11 @@ package main
 import (
 	"crypto/rand"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 func main() {
@@ -37,10 +37,10 @@ func main() {
 		log.Printf("server: accepted from %s", conn.RemoteAddr())
 		tlscon, ok := conn.(*tls.Conn)
 		if ok {
-			log.Print("ok=true")
-			state := tlscon.ConnectionState()
-			for _, v := range state.PeerCertificates {
-				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
+			err = tlscon.Handshake()
+			if err != nil {
+				log.Printf("server: TLS handshake: %s", err)
+				break
 			}
 		}
 		go handleClient(conn)
@@ -53,33 +53,27 @@ func handleClient(conn net.Conn) {
 	msg := "{\"op\":\"connection\",\"connectionId\":\"002-230915140112-174\"}\r\n"
 	msgBytes := []byte(msg)
 
+	time.Sleep(4 * time.Second)
+	time.Sleep(500 * time.Millisecond)
+
 	n, err := conn.Write(msgBytes[:20])
 	log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
 
-	// time.Sleep(3 * time.Second)
+	time.Sleep(1500 * time.Millisecond)
 
 	n, err = conn.Write(msgBytes[20:])
 	log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
 
-	// buf := make([]byte, 512)
-	// for {
-	// 	log.Print("server: conn: waiting")
-	// 	n, err := conn.Read(buf)
-	// 	if err != nil {
-	// 		if err != nil {
-	// 			log.Printf("server: conn: read: %s", err)
-	// 		}
-	// 		break
-	// 	}
-	// 	log.Printf("server: conn: echo %q\n", string(buf[:n]))
-	// 	n, err = conn.Write(buf[:n])
-	// 	log.Printf("server: conn: wrote %d bytes", n)
+	n, err = conn.Write(msgBytes[:])
+	log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
 
-	// 	if err != nil {
-	// 		log.Printf("server: write: %s", err)
-	// 		break
-	// 	}
-	// }
+	// n, err := conn.Write([]byte("{\"op\":\"connection\",\"connectionId\":\"002-230915140112-174\"}\r\n{\"op\":\"connect"))
+	// log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
+
+	// time.Sleep(1500 * time.Millisecond)
+
+	// n, err = conn.Write([]byte("ion\",\"connectionId\":\"002-230915140112-174\"}\r\n"))
+	// log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
 }
 
 func closeConn(conn net.Conn) {

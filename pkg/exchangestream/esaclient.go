@@ -1,10 +1,11 @@
 package exchangestream
 
 import (
-	"bufio"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"sync/atomic"
@@ -12,6 +13,8 @@ import (
 )
 
 const maxBufCapacity = 1024 * 1024
+
+// timeout of 0.5 seconds
 const timeoutDuration = 500 * time.Millisecond
 
 type ESAClient struct {
@@ -25,6 +28,10 @@ type ESAClient struct {
 	// Atomic
 	msgID        uint32
 	connectionID atomic.Value
+
+	// Life cycle management
+	stopChan       chan bool
+	stopInformChan chan bool
 }
 
 func NewESAClient(appKey string, sessionToken string) ESAClient {
@@ -34,88 +41,154 @@ func NewESAClient(appKey string, sessionToken string) ESAClient {
 }
 
 // reader is responsible for reading all incoming messages and sending the corresponding objects down the channel
-func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan <-chan int) {
+func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan <-chan bool) {
+	fmt.Println("starting reader goroutine")
+	defer fmt.Println("exiting reader goroutine")
+
 	// Create a 8MB buffer for incoming messages
-	// var buf []byte = make([]byte, 0, 8*1024*1024)
-	bufReader := bufio.NewReader(esaclient.conn)
+	var buf [8 * 1024 * 1024]byte
+	indiceStart := 0
+	indiceStop := 0
 
 	for {
-		// Call Read with timeout (0.5 seconds)
+		// check stopChan without blocking, if set then exit function
+		select {
+		case <-stopChan:
+			close(respMsgChan)
+			return
+		default:
+		}
+
+		// Call Read with timeout
 		esaclient.conn.SetReadDeadline(time.Now().Add(timeoutDuration))
-		// Read tokens delimited by newline
-		bytes, err := bufReader.ReadBytes('\n')
 
-		// If timeout, continue
+		n, err := esaclient.conn.Read(buf[indiceStop : len(buf)-1])
+		log.Printf("read %d bytes from connection", n)
 		if err1, ok := err.(*net.OpError); ok {
-			fmt.Printf("ERROR: %+v\n", err1)
-
+			// If timeout, continue
 			if err1.Timeout() {
+				log.Printf("Timeout: %+v\n", err1)
 				continue
 			}
-
+			fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+			// Before continue, prob need to do something with the potential stuff that is in the buffer!
+			// TODO: get the extra data read and update indices!
+			continue
 		} else if err != nil {
 			// If EOF, connection was closed!!
 			fmt.Printf("ERROR: %+T - %[1]+v\n", err)
-			return
+			// Before continue, prob need to do something with the potential stuff that is in the buffer!
+			// TODO: get the extra data read and update indices!
+			continue
 		}
 
-		fmt.Printf("%s\n", bytes[:len(bytes)-2])
+		indiceStop += n
+		progress := true
 
-		cm := ConnectionMessage{}
+		// Iterate through the various potential messages (delim \r\n) we might have
+		for progress {
+			progress = false
 
-		// Pass bytes[:len(bytes)-2] to json unmarshelar
-		err = json.Unmarshal(bytes[:len(bytes)-2], &cm)
-		if err != nil {
-			fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+			for i := indiceStart; i < indiceStop; i++ {
+				if buf[i] == '\n' {
+					if i-indiceStart == 0 || i-indiceStart == 1 {
+						// discard
+						indiceStart = i + 1
+						progress = true
+						break
+					} else if buf[i-1] != '\r' {
+						// discard
+						indiceStart = i + 1
+						progress = true
+						break
+					} else {
+						// Convert this into a struct
+
+						fmt.Printf("%s\n", buf[indiceStart:i-1])
+
+						// Unmarshal into an object
+						respMsg := ResponseMessage{}
+						err = json.Unmarshal(buf[indiceStart:i-1], &respMsg)
+						if err != nil {
+							fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+						} else {
+							// Push the newly created object down the channel
+							respMsgChan <- respMsg
+						}
+
+						indiceStart = i + 1
+						progress = true
+						break
+					}
+				}
+			}
 		}
 
-		// validate operation is "connection"
-		if cm.Op != "connection" {
-			// return fmt.Errorf("Got OP: %q instead of \"operation\"", cm.Op)
-			fmt.Printf("Got OP: %q instead of \"operation\"", cm.Op)
+		// Shift content to the beginning of the buffer
+		if indiceStart != 0 {
+			if indiceStop == indiceStart {
+				indiceStart = 0
+				indiceStop = 0
+			} else {
+				copy(buf[:], buf[indiceStart:indiceStop])
+				indiceStop -= indiceStart
+				indiceStart = 0
+			}
 		}
-
-		esaclient.connectionID.Store(cm.ConnectionID)
-
-		fmt.Println("|", esaclient.connectionID.Load(), "|")
-
-		// check stopChan without blocking, if set then exit function
-
-		// If timeout occurred, then continue (to the beginning of the loop)
-
-		// Check byte slice we got back
-		// Iterate through, if contains \n, check if one before was \r then take that len -2 (we don't want \r or \n)
-
-		// Check if buffer is empty! (if not, copy this into that and process it)
-
-		// If it doesn't contain a \n then copy data into our buffer (keep track of the last position occupied)
-
-		// Unmarshal that into an object
-
-		// Push the newly created object down the channel
-
 	}
 }
 
-func (esaclient *ESAClient) writer(ReqMsgChan chan RequestMessage, stopInformChan chan<- int) {
+func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformChan chan<- bool) {
 
 }
 
-func (esaclient *ESAClient) controller(stopChan <-chan int, connMsgChan chan<- ConnectionMessage) {
-	// Spawn reader and writer goroutines
+func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
+	fmt.Println("starting controller goroutine")
+	defer fmt.Println("exiting controller goroutine")
+
+	connPhaseDone := false
 
 	respMsgChan := make(chan ResponseMessage, 1000)
-	readerStopChan := make(chan int)
+	readerStopChan := make(chan bool)
+	reqMsgChan := make(chan RequestMessage, 1000)
+	writerStopInformChan := make(chan bool)
 
+	// Spawn reader and writer goroutines
 	go esaclient.reader(respMsgChan, readerStopChan)
+	go esaclient.writer(reqMsgChan, writerStopInformChan)
 
 	// If stopChan is closed, trigger reader and writer to end too
 	// When getting the connection message, send the data and close the channel
-	select {}
+	for {
+		select {
+		case _, ok := <-esaclient.stopChan:
+			if !ok {
+				esaclient.stopChan = nil
+				close(readerStopChan)
+			}
+		case respMsg, ok := <-respMsgChan:
+			if !ok {
+				close(esaclient.stopInformChan)
+				return
+			}
+
+			if respMsg.Op == "connection" {
+				if !connPhaseDone {
+					connMsgChan <- *respMsg.ConnectionMessage
+					close(connMsgChan)
+					connPhaseDone = true
+				} else {
+					fmt.Printf("this should have never happened - for another ConnectionMessage: %+v", respMsg)
+				}
+			}
+
+			fmt.Printf("Message: %+v\n", respMsg)
+		}
+	}
 }
 
 // Connect connects to the server.
-// When connected, spawn read and write goroutines!
+// When connected, spawn controller, read and write goroutines!
 func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecureSkipVerify bool) (err error) {
 
 	// If connectionID != "" then there is a connection already!
@@ -124,28 +197,67 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 	}
 
 	config := tls.Config{InsecureSkipVerify: insecureSkipVerify}
-	esaclient.conn, err = tls.Dial("tcp", serverHost+":"+strconv.Itoa(int(serverPort)), &config)
+	d := net.Dialer{Timeout: 3 * time.Second}
+	esaclient.conn, err = tls.DialWithDialer(&d, "tcp", serverHost+":"+strconv.Itoa(int(serverPort)), &config)
 	if err != nil {
 		return err
 	}
 
-	stopChan := make(chan int)
+	fmt.Println("connection established with server")
+
+	esaclient.stopChan = make(chan bool)
+	esaclient.stopInformChan = make(chan bool)
 	connMsgChan := make(chan ConnectionMessage)
 
 	// Spawn controller in a goroutine
-	go esaclient.controller(stopChan, connMsgChan)
+	go esaclient.controller(connMsgChan)
 
 	// Select connMsgChan and Timeout of X seconds
-	select {}
+	// If timeout, bring all 3 goroutines down: controller, reader, writer
+	select {
+	case connMsg := <-connMsgChan:
+		esaclient.connectionID.Store(connMsg.ConnectionID)
+		fmt.Println("|", esaclient.connectionID.Load(), "|")
+		return nil
+
+	case <-time.After(3 * time.Second):
+		// call timed out
+		esaclient.disconnectHelper()
+
+		return errors.New("Timeout while waiting for connection message from betfair")
+	}
 
 	return nil
 }
 
-func (esaclient *ESAClient) Disconnect() {
+func (esaclient *ESAClient) Disconnect() error {
+	// Check that there is a connection to disconnect
+	if esaclient.connectionID.Load().(string) == "" {
+		return fmt.Errorf("no connection available to disconnect")
+	}
+
+	return esaclient.disconnectHelper()
+}
+
+func (esaclient *ESAClient) disconnectHelper() error {
+	close(esaclient.stopChan)
+
+	// Wait for the stop inform to arrive or after X seconds kill the connection anyway
+	select {
+	case <-esaclient.stopInformChan:
+		// success tearing down
+	case <-time.After(3 * time.Second):
+		// call timed out
+	}
+
 	esaclient.conn.Close()
+
+	esaclient.connectionID.Store("")
 
 	// Restore id to initial value
 	atomic.StoreUint32(&esaclient.msgID, 0)
+
+	return nil
 }
 
 // func (esaclient *ESAClient) Authenticate() error {

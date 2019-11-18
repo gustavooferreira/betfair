@@ -13,6 +13,7 @@ type RequestMessage struct {
 type ResponseMessage struct {
 	Op                  string `json:"op"`
 	ID                  uint32 `json:"id"`
+	ConnectionMessage   *ConnectionMessage
 	StatusMessage       *StatusMessage
 	MarketChangeMessage *MarketChangeMessage
 }
@@ -30,10 +31,13 @@ func (rm *ResponseMessage) UnmarshalJSON(data []byte) error {
 	rm.Op = temp.Op
 	rm.ID = temp.ID
 
-	rm.StatusMessage = nil
-	rm.MarketChangeMessage = nil
-
-	if rm.Op == "status" {
+	if rm.Op == "connection" {
+		var connectionMessage ConnectionMessage
+		if err := json.Unmarshal(data, &connectionMessage); err != nil {
+			return err
+		}
+		rm.ConnectionMessage = &connectionMessage
+	} else if rm.Op == "status" {
 		var statusMessage StatusMessage
 		if err := json.Unmarshal(data, &statusMessage); err != nil {
 			return err
@@ -53,7 +57,6 @@ func (rm *ResponseMessage) UnmarshalJSON(data []byte) error {
 }
 
 type ConnectionMessage struct {
-	Op           string `json:"op"`
 	ConnectionID string `json:"connectionId"`
 }
 
