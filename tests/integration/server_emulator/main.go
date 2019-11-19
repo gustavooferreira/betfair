@@ -53,7 +53,6 @@ func handleClient(conn net.Conn) {
 	msg := "{\"op\":\"connection\",\"connectionId\":\"002-230915140112-174\"}\r\n"
 	msgBytes := []byte(msg)
 
-	time.Sleep(4 * time.Second)
 	time.Sleep(500 * time.Millisecond)
 
 	n, err := conn.Write(msgBytes[:20])
@@ -64,8 +63,8 @@ func handleClient(conn net.Conn) {
 	n, err = conn.Write(msgBytes[20:])
 	log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
 
-	n, err = conn.Write(msgBytes[:])
-	log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
+	// n, err = conn.Write(msgBytes[:])
+	// log.Printf("Wrote %d bytes - Error: %+v\n", n, err)
 
 	// n, err := conn.Write([]byte("{\"op\":\"connection\",\"connectionId\":\"002-230915140112-174\"}\r\n{\"op\":\"connect"))
 	// log.Printf("Wrote %d bytes - Error: %+v\n", n, err)

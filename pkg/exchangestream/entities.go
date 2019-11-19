@@ -1,126 +1,89 @@
 package exchangestream
 
-import (
-	"encoding/json"
-	"errors"
-)
-
-type RequestMessage struct {
-	Op string `json:"op"`
-	ID uint32 `json:"id"`
-}
-
-type ResponseMessage struct {
-	Op                  string `json:"op"`
-	ID                  uint32 `json:"id"`
-	ConnectionMessage   *ConnectionMessage
-	StatusMessage       *StatusMessage
-	MarketChangeMessage *MarketChangeMessage
-}
-
-// UnmarshalJSON unmarshals ResponseMessage struct
-func (rm *ResponseMessage) UnmarshalJSON(data []byte) error {
-	temp := struct {
-		Op string `json:"op"`
-		ID uint32 `json:"id"`
-	}{}
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-
-	rm.Op = temp.Op
-	rm.ID = temp.ID
-
-	if rm.Op == "connection" {
-		var connectionMessage ConnectionMessage
-		if err := json.Unmarshal(data, &connectionMessage); err != nil {
-			return err
-		}
-		rm.ConnectionMessage = &connectionMessage
-	} else if rm.Op == "status" {
-		var statusMessage StatusMessage
-		if err := json.Unmarshal(data, &statusMessage); err != nil {
-			return err
-		}
-		rm.StatusMessage = &statusMessage
-	} else if rm.Op == "mcm" {
-		var marketChangeMessage MarketChangeMessage
-		if err := json.Unmarshal(data, &marketChangeMessage); err != nil {
-			return err
-		}
-		rm.MarketChangeMessage = &marketChangeMessage
-	} else {
-		return errors.New("Invalid object value")
-	}
-
-	return nil
-}
-
 type ConnectionMessage struct {
 	ConnectionID string `json:"connectionId"`
 }
 
 type AuthenticationMessage struct {
-	RequestMessage
 	AppKey       string `json:"appKey"`
 	SessionToken string `json:"session"`
 }
 
 type StatusMessage struct {
-	StatusCode       string `json:"statusCode"`
-	ConnectionClosed *bool  `json:"connectionClosed"`
-	ErrorMessage     string `json:"errorMessage"`
-	ErrorCode        string `json:"errorCode"`
+	ErrorMessage     string     `json:"errorMessage"`
+	ErrorCode        ErrorCode  `json:"errorCode"`
+	ConnectionID     string     `json:"connectionId"`
+	ConnectionClosed *bool      `json:"connectionClosed"`
+	StatusCode       StatusCode `json:"statusCode"`
 }
 
-type SubscriptionMessage struct {
-	RequestMessage
+type OrderSubscriptionMessage struct {
+	SegmentationEnabled bool        `json:"segmentationEnabled"`
+	OrderFilter         OrderFilter `json:"orderFilter"`
+	Clk                 string      `json:"clk,omitempty"`
+	HeartbeatMs         uint        `json:"heartbeatMs,omitempty"`
+	InitialClk          string      `json:"initialClk,omitempty"`
+	ConflateMs          uint        `json:"conflateMs,omitempty"`
+}
+
+type OrderFilter struct {
+	IncludeOverallPosition        *bool    `json:"includeOverallPosition"`
+	CustomerStrategyRefs          []string `json:"customerStrategyRefs"`
+	PartitionMatchedByStrategyRef *bool    `json:"partitionMatchedByStrategyRef"`
+}
+
+type OrderChangeMessage struct {
+	Clk         string `json:"clk,omitempty"`
+	HeartbeatMs uint   `json:"heartbeatMs,omitempty"`
+}
+
+type MarketSubscriptionMessage struct {
 	SegmentationEnabled *bool            `json:"segmentationEnabled,omitempty"`
 	Clk                 string           `json:"clk,omitempty"`
-	InitialClk          string           `json:"initialClk,omitempty"`
 	HeartbeatMs         uint             `json:"heartbeatMs,omitempty"`
-	ConflateMs          uint             `json:"conflateMs,omitempty"`
+	InitialClk          string           `json:"initialClk,omitempty"`
 	MarketFilter        MarketFilter     `json:"marketFilter,omitempty"`
+	ConflateMs          uint             `json:"conflateMs,omitempty"`
 	MarketDataFilter    MarketDataFilter `json:"marketDataFilter,omitempty"`
 }
 
 type MarketFilter struct {
-	CountryCodes      []string `json:"countryCodes,omitempty"`
-	BettingTypes      []string `json:"bettingTypes,omitempty"`
-	TurnInPlayEnabled *bool    `json:"turnInPlayEnabled,omitempty"`
-	MarketTypes       []string `json:"marketTypes,omitempty"`
-	Venues            []string `json:"venues,omitempty"`
-	MarketIDs         []string `json:"marketIds,omitempty"`
-	EventTypeIDs      []string `json:"eventTypeIds,omitempty"`
-	EventIDs          []string `json:"eventIds,omitempty"`
-	BSPMarket         *bool    `json:"bspMarket,omitempty"`
-	RaceTypes         []string `json:"raceTypes,omitempty"`
+	CountryCodes      []string      `json:"countryCodes,omitempty"`
+	BettingTypes      []BettingType `json:"bettingTypes,omitempty"`
+	TurnInPlayEnabled *bool         `json:"turnInPlayEnabled,omitempty"`
+	MarketTypes       []string      `json:"marketTypes,omitempty"`
+	Venues            []string      `json:"venues,omitempty"`
+	MarketIDs         []string      `json:"marketIds,omitempty"`
+	EventTypeIDs      []string      `json:"eventTypeIds,omitempty"`
+	EventIDs          []string      `json:"eventIds,omitempty"`
+	BSPMarket         *bool         `json:"bspMarket,omitempty"`
+	RaceTypes         []string      `json:"raceTypes,omitempty"`
 }
 
 type MarketDataFilter struct {
-	LadderLevels uint     `json:"ladderLevels,omitempty"`
-	Fields       []string `json:"fields,omitempty"`
+	LadderLevels uint        `json:"ladderLevels,omitempty"`
+	Fields       []PriceData `json:"fields,omitempty"`
 }
 
 type MarketChangeMessage struct {
-	Ct          string         `json:"ct"`
+	Ct          *ChangeType    `json:"ct"`
 	Clk         string         `json:"clk"`
-	InitialClk  string         `json:"initialClk"`
-	Pt          uint           `json:"pt"`
 	HeartbeatMs uint           `json:"heartbeatMs"`
-	ConflateMs  uint           `json:"conflateMs"`
-	SegmentType string         `json:"segmentType"`
-	Status      uint           `json:"status"`
+	Pt          uint           `json:"pt"`
+	InitialClk  string         `json:"initialClk"`
 	Mc          []MarketChange `json:"mc"`
+	ConflateMs  uint           `json:"conflateMs"`
+	SegmentType *SegmentType   `json:"segmentType"`
+	Status      uint           `json:"status"`
 }
 
 type MarketChange struct {
-	Img              *bool            `json:"img"`
-	Tv               float64          `json:"tv"`
-	Con              *bool            `json:"con"`
-	ID               string           `json:"id"`
 	Rc               []RunnerChange   `json:"rc"`
+	Img              *bool            `json:"img"`
+	Tv               *float64         `json:"tv"`
+	Con              *bool            `json:"con"`
 	MarketDefinition MarketDefinition `json:"marketDefinition"`
+	ID               string           `json:"id"`
 }
 
 type MarketDefinition struct {

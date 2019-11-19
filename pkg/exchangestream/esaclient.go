@@ -17,6 +17,8 @@ const maxBufCapacity = 1024 * 1024
 // timeout of 0.5 seconds
 const timeoutDuration = 500 * time.Millisecond
 
+// ESAClient is the client that interacts with betfair Exchange Stream API
+// It's thread safe.
 type ESAClient struct {
 	// Treated as immutable
 	appKey       string
@@ -70,13 +72,13 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 				log.Printf("Timeout: %+v\n", err1)
 				continue
 			}
-			fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+			fmt.Printf("ERROR: %T - %[1]+v\n", err)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
 			continue
 		} else if err != nil {
 			// If EOF, connection was closed!!
-			fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+			fmt.Printf("ERROR: %T - %[1]+v\n", err)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
 			continue
@@ -139,7 +141,49 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 }
 
 func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformChan chan<- bool) {
+	fmt.Println("starting writer goroutine")
+	defer fmt.Println("exiting writer goroutine")
 
+	for {
+		select {
+		case reqMsg, ok := <-ReqMsgChan:
+			if !ok {
+				close(stopInformChan)
+				return
+			}
+
+			// Marhsal Request
+			bytes, err := json.Marshal(reqMsg)
+			if err != nil {
+				fmt.Printf("ERROR: %T - %[1]+v\n", err)
+				continue
+			}
+
+			// esaclient.conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
+
+			// Call Write with timeout
+			n, err := esaclient.conn.Write(bytes)
+			log.Printf("write %d bytes from connection", n)
+
+			if err1, ok := err.(*net.OpError); ok {
+				// If timeout, continue
+				if err1.Timeout() {
+					log.Printf("Timeout: %+v\n", err1)
+					continue
+				}
+				fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+				// Before continue, prob need to do something with the potential stuff that is in the buffer!
+				// TODO: get the extra data read and update indices!
+				continue
+			} else if err != nil {
+				// If EOF, connection was closed!!
+				fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+				// Before continue, prob need to do something with the potential stuff that is in the buffer!
+				// TODO: get the extra data read and update indices!
+				continue
+			}
+		}
+	}
 }
 
 func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
@@ -217,7 +261,6 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 	select {
 	case connMsg := <-connMsgChan:
 		esaclient.connectionID.Store(connMsg.ConnectionID)
-		fmt.Println("|", esaclient.connectionID.Load(), "|")
 		return nil
 
 	case <-time.After(3 * time.Second):
@@ -258,6 +301,10 @@ func (esaclient *ESAClient) disconnectHelper() error {
 	atomic.StoreUint32(&esaclient.msgID, 0)
 
 	return nil
+}
+
+func (esaclient *ESAClient) GetConnectionID() string {
+	return esaclient.connectionID.Load().(string)
 }
 
 // func (esaclient *ESAClient) Authenticate() error {
