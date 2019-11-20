@@ -5,11 +5,13 @@ import (
 	"log"
 	"testing"
 	"time"
+
+	"github.com/gustavooferreira/betfair/pkg/aping"
 )
 
-func TestAbs(t *testing.T) {
+func TestAPI(t *testing.T) {
 
-	bs := BetfairAPI{AppKey: "", SessionToken: ""}
+	bs := BettingAPI{aping.BetfairAPI{AppKey: "", SessionToken: ""}}
 
 	from := time.Date(2019, 8, 21, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2019, 8, 21, 23, 55, 0, 0, time.UTC)
@@ -19,7 +21,9 @@ func TestAbs(t *testing.T) {
 	mf := MarketFilter{EventTypeIds: []string{"7"}, MarketCountries: []string{"GB", "IE"},
 		MarketTypeCodes: []string{"WIN"}, MarketStartTime: tr}
 
-	bs.ListMarketCatalogue(mf, &[]MarketProjection{MarketProjection_MarketStartTime}, nil, 100)
+	_ = bs
+	_ = mf
+	// bs.ListMarketCatalogue(mf, &[]MarketProjection{MarketProjection_MarketStartTime}, nil, 100, nil)
 
 	if "yolo" != "yolo" {
 		t.Errorf("mismatched token: %s", "YOLO")

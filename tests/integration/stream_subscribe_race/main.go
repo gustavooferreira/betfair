@@ -30,7 +30,7 @@ func main() {
 	reqMsg := exchangestream.RequestMessage{Op: "authentication", ID: 100, AuthenticationMessage: &authMsg}
 	bytes, err := json.Marshal(reqMsg)
 	if err != nil {
-		fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+		fmt.Printf("ERROR: %T - %+[1]v\n", err)
 		return
 	}
 	fmt.Printf("%s\n", bytes)
@@ -41,7 +41,7 @@ func main() {
 	respMsg := exchangestream.ResponseMessage{}
 	err = json.Unmarshal([]byte(respMsgString), &respMsg)
 	if err != nil {
-		fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+		fmt.Printf("ERROR: %T - %+[1]v\n", err)
 		return
 	}
 	fmt.Printf("%+v\n", respMsg)

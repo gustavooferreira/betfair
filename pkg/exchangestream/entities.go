@@ -32,11 +32,6 @@ type OrderFilter struct {
 	PartitionMatchedByStrategyRef *bool    `json:"partitionMatchedByStrategyRef"`
 }
 
-type OrderChangeMessage struct {
-	Clk         string `json:"clk,omitempty"`
-	HeartbeatMs uint   `json:"heartbeatMs,omitempty"`
-}
-
 type MarketSubscriptionMessage struct {
 	SegmentationEnabled *bool            `json:"segmentationEnabled,omitempty"`
 	Clk                 string           `json:"clk,omitempty"`
@@ -101,7 +96,7 @@ type MarketDefinition struct {
 	InPlay                *bool                 `json:"inPlay"`
 	BetDelay              uint                  `json:"betDelay"`
 	BSPMarket             *bool                 `json:"bspMarket"`
-	BettingType           string                `json:"bettingType"`
+	BettingType           BettingType           `json:"bettingType"`
 	NumberOfActiveRunners uint                  `json:"numberOfActiveRunners"`
 	LineMinUnit           float64               `json:"lineMinUnit"`
 	EventID               string                `json:"eventId"`
@@ -121,21 +116,21 @@ type MarketDefinition struct {
 	MarketTime            string                `json:"marketTime"`
 	BSPReconciled         *bool                 `json:"bspReconciled"`
 	LineInterval          float64               `json:"lineInterval"`
-	Status                string                `json:"status"`
+	Status                RaceStatus            `json:"status"`
 }
 
 type RunnerDefinition struct {
-	SortPriority     uint    `json:"sortPriority"`
-	RemovalDate      string  `json:"removalDate"`
-	ID               uint    `json:"id"`
-	Hc               float64 `json:"hc"`
-	AdjustmentFactor float64 `json:"adjustmentFactor"`
-	BSP              float64 `json:"bsp"`
-	Status           string  `json:"status"`
+	SortPriority     uint       `json:"sortPriority"`
+	RemovalDate      string     `json:"removalDate"`
+	ID               uint       `json:"id"`
+	Hc               float64    `json:"hc"`
+	AdjustmentFactor float64    `json:"adjustmentFactor"`
+	BSP              float64    `json:"bsp"`
+	Status           RaceStatus `json:"status"`
 }
 
 type PriceLadderDefinition struct {
-	Type string `json:"type"`
+	Type PriceLadderType `json:"type"`
 }
 
 type KeyLineDefinition struct {
@@ -153,14 +148,53 @@ type RunnerChange struct {
 	Spb   [][]float64 `json:"spb"`
 	Bdatl [][]float64 `json:"bdatl"`
 	Trd   [][]float64 `json:"trd"`
-	Atb   [][]float64 `json:"atb"`
-	Spl   [][]float64 `json:"spl"`
-	Atl   [][]float64 `json:"atl"`
-	Batl  [][]float64 `json:"batl"`
-	Bdatb [][]float64 `json:"bdatb"`
 	Spf   float64     `json:"spf"`
 	Ltp   float64     `json:"ltp"`
+	Atb   [][]float64 `json:"atb"`
+	Spl   [][]float64 `json:"spl"`
 	Spn   float64     `json:"spn"`
+	Atl   [][]float64 `json:"atl"`
+	Batl  [][]float64 `json:"batl"`
 	ID    uint        `json:"id"`
 	Hc    float64     `json:"hc"`
+	Bdatb [][]float64 `json:"bdatb"`
+}
+
+type OrderChangeMessage struct {
+	Ct          *ChangeType         `json:"ct"`
+	Clk         string              `json:"clk"`
+	HeartbeatMs uint                `json:"heartbeatMs"`
+	Pt          uint                `json:"pt"`
+	Oc          []OrderMarketChange `json:"oc"`
+	InitialClk  string              `json:"initialClk"`
+	ConflateMs  uint                `json:"conflateMs"`
+	SegmentType *SegmentType        `json:"segmentType"`
+	Status      uint                `json:"status"`
+}
+
+type OrderMarketChange struct {
+	AccountID uint                `json:"accountId"`
+	Orc       []OrderRunnerChange `json:"orc"`
+	Closed    *bool               `json:"closed"`
+	ID        string              `json:"id"`
+}
+
+type OrderRunnerChange struct {
+	Mb        [][]float64                    `json:"mb"`
+	Smc       map[string]StrategyMatchChange `json:"smc"`
+	Uo        []Order                        `json:"uo"`
+	ID        uint                           `json:"id"`
+	Hc        float64                        `json:"hc"`
+	FullImage *bool                          `json:"fullImage"`
+	Ml        [][]float64                    `json:"ml"`
+}
+
+type Order struct {
+	Side string  `json:"side"`
+	Sv   float64 `json:"sv"`
+}
+
+type StrategyMatchChange struct {
+	Mb [][]float64 `json:"mb"`
+	Ml [][]float64 `json:"ml"`
 }

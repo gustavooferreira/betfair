@@ -4,13 +4,11 @@ build:
 
 .PHONY: test
 test:
-	@go test -v ./...
-
+	@go test -run Test ./...
 
 .PHONY: coverage
 coverage:
-	@go test -cover ./...
-
+	@go test -run Test -cover ./...
 
 .PHONY: lint
 lint:
@@ -25,26 +23,21 @@ docs-server:
 	@echo "Documentation:"
 	@bash scripts/run-docs-server.sh
 
-
 .PHONY: find_todo
 find_todo:
 	@grep --color=always --include=\*.go -PnRe '(//|/*).*TODO' ./ || true
-
 
 .PHONY: find_fixme
 find_fixme:
 	@grep --color=always --include=\*.go -PnRe '(//|/*).*FIXME' ./ || true
 
-
 .PHONY: find_xxx
 find_xxx:
 	@grep --color=always --include=\*.go -PnRe '(//|/*).*XXX' ./ || true
 
-
 .PHONY: clean
 clean:
 	# @rm -f file
-
 
 .PHONY: count
 count:

@@ -28,10 +28,10 @@ const (
 )
 
 func (ec ErrorCode) String() string {
-	return ErrorCodeToString[ec]
+	return errorCodeToString[ec]
 }
 
-var ErrorCodeToString = map[ErrorCode]string{
+var errorCodeToString = map[ErrorCode]string{
 	ErrorCode_NoAppKey:                   "NO_APP_KEY",
 	ErrorCode_InvalidAppKey:              "INVALID_APP_KEY",
 	ErrorCode_NoSession:                  "NO_SESSION",
@@ -47,7 +47,7 @@ var ErrorCodeToString = map[ErrorCode]string{
 	ErrorCode_MaxConnectionLimitExceeded: "MAX_CONNECTION_LIMIT_EXCEEDED",
 }
 
-var ErrorCodeToEnum = map[string]ErrorCode{
+var errorCodeToEnum = map[string]ErrorCode{
 	"NO_APP_KEY":                    ErrorCode_NoAppKey,
 	"INVALID_APP_KEY":               ErrorCode_InvalidAppKey,
 	"NO_SESSION":                    ErrorCode_NoSession,
@@ -65,7 +65,7 @@ var ErrorCodeToEnum = map[string]ErrorCode{
 
 // MarshalJSON marshals the enum as a quoted json string
 func (ec ErrorCode) MarshalJSON() ([]byte, error) {
-	elem, ok := ErrorCodeToString[ec]
+	elem, ok := errorCodeToString[ec]
 	if ok {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
@@ -81,7 +81,7 @@ func (ec *ErrorCode) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	result, ok := ErrorCodeToEnum[j]
+	result, ok := errorCodeToEnum[j]
 	if !ok {
 		return errors.New("couldn't find matching enum value")
 	}
@@ -100,22 +100,22 @@ const (
 )
 
 func (sc StatusCode) String() string {
-	return StatusCodeToString[sc]
+	return statusCodeToString[sc]
 }
 
-var StatusCodeToString = map[StatusCode]string{
+var statusCodeToString = map[StatusCode]string{
 	StatusCode_Success: "SUCCESS",
 	StatusCode_Failure: "FAILURE",
 }
 
-var StatusCodeToEnum = map[string]StatusCode{
+var statusCodeToEnum = map[string]StatusCode{
 	"SUCCESS": StatusCode_Success,
 	"FAILURE": StatusCode_Failure,
 }
 
 // MarshalJSON marshals the enum as a quoted json string
 func (sc StatusCode) MarshalJSON() ([]byte, error) {
-	elem, ok := StatusCodeToString[sc]
+	elem, ok := statusCodeToString[sc]
 	if ok {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
@@ -131,7 +131,7 @@ func (sc *StatusCode) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	result, ok := StatusCodeToEnum[j]
+	result, ok := statusCodeToEnum[j]
 	if !ok {
 		return errors.New("couldn't find matching enum value")
 	}
@@ -157,10 +157,10 @@ const (
 )
 
 func (pd PriceData) String() string {
-	return PriceDataToString[pd]
+	return priceDataToString[pd]
 }
 
-var PriceDataToString = map[PriceData]string{
+var priceDataToString = map[PriceData]string{
 	PriceData_ExBestOffersDisp: "EX_BEST_OFFERS_DISP",
 	PriceData_ExBestOffers:     "EX_BEST_OFFERS",
 	PriceData_ExAllOffers:      "EX_ALL_OFFERS",
@@ -172,7 +172,7 @@ var PriceDataToString = map[PriceData]string{
 	PriceData_SPProjected:      "SP_PROJECTED",
 }
 
-var PriceDataToEnum = map[string]PriceData{
+var priceDataToEnum = map[string]PriceData{
 	"EX_BEST_OFFERS_DISP": PriceData_ExBestOffersDisp,
 	"EX_BEST_OFFERS":      PriceData_ExBestOffers,
 	"EX_ALL_OFFERS":       PriceData_ExAllOffers,
@@ -186,7 +186,7 @@ var PriceDataToEnum = map[string]PriceData{
 
 // MarshalJSON marshals the enum as a quoted json string
 func (pd PriceData) MarshalJSON() ([]byte, error) {
-	elem, ok := PriceDataToString[pd]
+	elem, ok := priceDataToString[pd]
 	if ok {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
@@ -202,7 +202,7 @@ func (pd *PriceData) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	result, ok := PriceDataToEnum[j]
+	result, ok := priceDataToEnum[j]
 	if !ok {
 		return errors.New("couldn't find matching enum value")
 	}
@@ -224,10 +224,10 @@ const (
 )
 
 func (bt BettingType) String() string {
-	return BettingTypeToString[bt]
+	return bettingTypeToString[bt]
 }
 
-var BettingTypeToString = map[BettingType]string{
+var bettingTypeToString = map[BettingType]string{
 	BettingType_Odds:                    "ODDS",
 	BettingType_Line:                    "LINE",
 	BettingType_Range:                   "RANGE",
@@ -235,7 +235,7 @@ var BettingTypeToString = map[BettingType]string{
 	BettingType_AsianHandicapSingleLine: "ASIAN_HANDICAP_SINGLE_LINE",
 }
 
-var BettingTypeToEnum = map[string]BettingType{
+var bettingTypeToEnum = map[string]BettingType{
 	"ODDS":                       BettingType_Odds,
 	"LINE":                       BettingType_Line,
 	"RANGE":                      BettingType_Range,
@@ -245,7 +245,7 @@ var BettingTypeToEnum = map[string]BettingType{
 
 // MarshalJSON marshals the enum as a quoted json string
 func (bt BettingType) MarshalJSON() ([]byte, error) {
-	elem, ok := BettingTypeToString[bt]
+	elem, ok := bettingTypeToString[bt]
 	if ok {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
@@ -261,7 +261,7 @@ func (bt *BettingType) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	result, ok := BettingTypeToEnum[j]
+	result, ok := bettingTypeToEnum[j]
 	if !ok {
 		return errors.New("couldn't find matching enum value")
 	}
@@ -281,16 +281,16 @@ const (
 )
 
 func (ct ChangeType) String() string {
-	return ChangeTypeToString[ct]
+	return changeTypeToString[ct]
 }
 
-var ChangeTypeToString = map[ChangeType]string{
+var changeTypeToString = map[ChangeType]string{
 	ChangeType_SubImage:   "SUB_IMAGE",
 	ChangeType_ResubDelta: "RESUB_DELTA",
 	ChangeType_Heartbeat:  "HEARTBEAT",
 }
 
-var ChangeTypeToEnum = map[string]ChangeType{
+var changeTypeToEnum = map[string]ChangeType{
 	"SUB_IMAGE":   ChangeType_SubImage,
 	"RESUB_DELTA": ChangeType_ResubDelta,
 	"HEARTBEAT":   ChangeType_Heartbeat,
@@ -298,7 +298,7 @@ var ChangeTypeToEnum = map[string]ChangeType{
 
 // MarshalJSON marshals the enum as a quoted json string
 func (ct ChangeType) MarshalJSON() ([]byte, error) {
-	elem, ok := ChangeTypeToString[ct]
+	elem, ok := changeTypeToString[ct]
 	if ok {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
@@ -314,7 +314,7 @@ func (ct *ChangeType) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	result, ok := ChangeTypeToEnum[j]
+	result, ok := changeTypeToEnum[j]
 	if !ok {
 		return errors.New("couldn't find matching enum value")
 	}
@@ -334,16 +334,16 @@ const (
 )
 
 func (st SegmentType) String() string {
-	return SegmentTypeToString[st]
+	return segmentTypeToString[st]
 }
 
-var SegmentTypeToString = map[SegmentType]string{
+var segmentTypeToString = map[SegmentType]string{
 	SegmentType_SegStart: "SEG_START",
 	SegmentType_Seg:      "SEG",
 	SegmentType_SegEnd:   "SEG_END",
 }
 
-var SegmentTypeToEnum = map[string]SegmentType{
+var segmentTypeToEnum = map[string]SegmentType{
 	"SEG_START": SegmentType_SegStart,
 	"SEG":       SegmentType_Seg,
 	"SEG_END":   SegmentType_SegEnd,
@@ -351,7 +351,7 @@ var SegmentTypeToEnum = map[string]SegmentType{
 
 // MarshalJSON marshals the enum as a quoted json string
 func (st SegmentType) MarshalJSON() ([]byte, error) {
-	elem, ok := SegmentTypeToString[st]
+	elem, ok := segmentTypeToString[st]
 	if ok {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
@@ -367,11 +367,185 @@ func (st *SegmentType) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	result, ok := SegmentTypeToEnum[j]
+	result, ok := segmentTypeToEnum[j]
 	if !ok {
 		return errors.New("couldn't find matching enum value")
 	}
 
 	*st = result
+	return nil
+}
+
+// RaceStatus ENUM
+
+type RaceStatus int
+
+const (
+	RaceStatus_Inactive RaceStatus = iota + 1
+	RaceStatus_Open
+	RaceStatus_Suspended
+	RaceStatus_Closed
+)
+
+func (rs RaceStatus) String() string {
+	return raceStatusToString[rs]
+}
+
+var raceStatusToString = map[RaceStatus]string{
+	RaceStatus_Inactive:  "INACTIVE",
+	RaceStatus_Open:      "OPEN",
+	RaceStatus_Suspended: "SUSPENDED",
+	RaceStatus_Closed:    "CLOSED",
+}
+
+var raceStatusToEnum = map[string]RaceStatus{
+	"INACTIVE":  RaceStatus_Inactive,
+	"OPEN":      RaceStatus_Open,
+	"SUSPENDED": RaceStatus_Suspended,
+	"CLOSED":    RaceStatus_Closed,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (rs RaceStatus) MarshalJSON() ([]byte, error) {
+	elem, ok := raceStatusToString[rs]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (rs *RaceStatus) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+
+	result, ok := raceStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*rs = result
+	return nil
+}
+
+// PriceLadderType ENUM
+
+type PriceLadderType int
+
+const (
+	PriceLadderType_Classic PriceLadderType = iota + 1
+	PriceLadderType_Finest
+	PriceLadderType_LineRange
+)
+
+func (plt PriceLadderType) String() string {
+	return priceLadderTypeToString[plt]
+}
+
+var priceLadderTypeToString = map[PriceLadderType]string{
+	PriceLadderType_Classic:   "CLASSIC",
+	PriceLadderType_Finest:    "FINEST",
+	PriceLadderType_LineRange: "LINE_RANGE",
+}
+
+var priceLadderTypeToEnum = map[string]PriceLadderType{
+	"CLASSIC":    PriceLadderType_Classic,
+	"FINEST":     PriceLadderType_Finest,
+	"LINE_RANGE": PriceLadderType_LineRange,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (plt PriceLadderType) MarshalJSON() ([]byte, error) {
+	elem, ok := priceLadderTypeToString[plt]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (plt *PriceLadderType) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+
+	result, ok := priceLadderTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*plt = result
+	return nil
+}
+
+// RunnerStatus ENUM
+
+type RunnerStatus int
+
+const (
+	RunnerStatus_Active RunnerStatus = iota + 1
+	RunnerStatus_Winner
+	RunnerStatus_Loser
+	RunnerStatus_Removed
+	RunnerStatus_RemovedVacant
+	RunnerStatus_Hidden
+	RunnerStatus_Placed
+)
+
+func (rs RunnerStatus) String() string {
+	return runnerStatusToString[rs]
+}
+
+var runnerStatusToString = map[RunnerStatus]string{
+	RunnerStatus_Active:        "ACTIVE",
+	RunnerStatus_Winner:        "WINNER",
+	RunnerStatus_Loser:         "LOSER",
+	RunnerStatus_Removed:       "REMOVED",
+	RunnerStatus_RemovedVacant: "REMOVED_VACANT",
+	RunnerStatus_Hidden:        "HIDDEN",
+	RunnerStatus_Placed:        "PLACED",
+}
+
+var runnerStatusToEnum = map[string]RunnerStatus{
+	"ACTIVE":         RunnerStatus_Active,
+	"WINNER":         RunnerStatus_Winner,
+	"LOSER":          RunnerStatus_Loser,
+	"REMOVED":        RunnerStatus_Removed,
+	"REMOVED_VACANT": RunnerStatus_RemovedVacant,
+	"HIDDEN":         RunnerStatus_Hidden,
+	"PLACED":         RunnerStatus_Placed,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (rs RunnerStatus) MarshalJSON() ([]byte, error) {
+	elem, ok := runnerStatusToString[rs]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (rs *RunnerStatus) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+
+	result, ok := runnerStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*rs = result
 	return nil
 }

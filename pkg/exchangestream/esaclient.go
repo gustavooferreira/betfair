@@ -72,13 +72,13 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 				log.Printf("Timeout: %+v\n", err1)
 				continue
 			}
-			fmt.Printf("ERROR: %T - %[1]+v\n", err)
+			fmt.Printf("ERROR: %T - %+[1]v\n", err)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
 			continue
 		} else if err != nil {
 			// If EOF, connection was closed!!
-			fmt.Printf("ERROR: %T - %[1]+v\n", err)
+			fmt.Printf("ERROR: %T - %+[1]v\n", err)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
 			continue
@@ -112,7 +112,7 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 						respMsg := ResponseMessage{}
 						err = json.Unmarshal(buf[indiceStart:i-1], &respMsg)
 						if err != nil {
-							fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+							fmt.Printf("ERROR: %T - %+[1]v\n", err)
 						} else {
 							// Push the newly created object down the channel
 							respMsgChan <- respMsg
@@ -155,7 +155,7 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 			// Marhsal Request
 			bytes, err := json.Marshal(reqMsg)
 			if err != nil {
-				fmt.Printf("ERROR: %T - %[1]+v\n", err)
+				fmt.Printf("ERROR: %T - %+[1]v\n", err)
 				continue
 			}
 
@@ -171,13 +171,13 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 					log.Printf("Timeout: %+v\n", err1)
 					continue
 				}
-				fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+				fmt.Printf("ERROR: %T - %+[1]v\n", err)
 				// Before continue, prob need to do something with the potential stuff that is in the buffer!
 				// TODO: get the extra data read and update indices!
 				continue
 			} else if err != nil {
 				// If EOF, connection was closed!!
-				fmt.Printf("ERROR: %+T - %[1]+v\n", err)
+				fmt.Printf("ERROR: %T - %+[1]v\n", err)
 				// Before continue, prob need to do something with the potential stuff that is in the buffer!
 				// TODO: get the extra data read and update indices!
 				continue
