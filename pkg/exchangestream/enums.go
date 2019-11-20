@@ -549,3 +549,209 @@ func (rs *RunnerStatus) UnmarshalJSON(data []byte) error {
 	*rs = result
 	return nil
 }
+
+// OrderSide ENUM
+
+type OrderSide int
+
+const (
+	OrderSide_Back OrderSide = iota + 1
+	OrderSide_Lay
+)
+
+func (os OrderSide) String() string {
+	return orderSideToString[os]
+}
+
+var orderSideToString = map[OrderSide]string{
+	OrderSide_Back: "B",
+	OrderSide_Lay:  "L",
+}
+
+var orderSideToEnum = map[string]OrderSide{
+	"B": OrderSide_Back,
+	"L": OrderSide_Lay,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (os OrderSide) MarshalJSON() ([]byte, error) {
+	elem, ok := orderSideToString[os]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (os *OrderSide) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+
+	result, ok := orderSideToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*os = result
+	return nil
+}
+
+// PersistenceType ENUM
+
+type PersistenceType int
+
+const (
+	PersistenceType_Lapse PersistenceType = iota + 1
+	PersistenceType_Persist
+	PersistenceType_MarketOnClose
+)
+
+func (pt PersistenceType) String() string {
+	return persistenceTypeToString[pt]
+}
+
+var persistenceTypeToString = map[PersistenceType]string{
+	PersistenceType_Lapse:         "L",
+	PersistenceType_Persist:       "P",
+	PersistenceType_MarketOnClose: "MOC",
+}
+
+var persistenceTypeToEnum = map[string]PersistenceType{
+	"L":   PersistenceType_Lapse,
+	"P":   PersistenceType_Persist,
+	"MOC": PersistenceType_MarketOnClose,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (pt PersistenceType) MarshalJSON() ([]byte, error) {
+	elem, ok := persistenceTypeToString[pt]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (pt *PersistenceType) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+
+	result, ok := persistenceTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*pt = result
+	return nil
+}
+
+// OrderType ENUM
+
+type OrderType int
+
+const (
+	OrderType_Limit OrderType = iota + 1
+	OrderType_MarketOnClose
+	OrderType_LimitOnClose
+)
+
+func (ot OrderType) String() string {
+	return orderTypeToString[ot]
+}
+
+var orderTypeToString = map[OrderType]string{
+	OrderType_Limit:         "L",
+	OrderType_MarketOnClose: "LOC",
+	OrderType_LimitOnClose:  "MOC",
+}
+
+var orderTypeToEnum = map[string]OrderType{
+	"L":   OrderType_Limit,
+	"LOC": OrderType_MarketOnClose,
+	"MOC": OrderType_LimitOnClose,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (ot OrderType) MarshalJSON() ([]byte, error) {
+	elem, ok := orderTypeToString[ot]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (ot *OrderType) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+
+	result, ok := orderTypeToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*ot = result
+	return nil
+}
+
+// OrderStatus ENUM
+
+type OrderStatus int
+
+const (
+	OrderStatus_Executable OrderStatus = iota + 1
+	OrderStatus_ExecutableComplete
+)
+
+func (os OrderStatus) String() string {
+	return orderStatusToString[os]
+}
+
+var orderStatusToString = map[OrderStatus]string{
+	OrderStatus_Executable:         "E",
+	OrderStatus_ExecutableComplete: "EC",
+}
+
+var orderStatusToEnum = map[string]OrderStatus{
+	"E":  OrderStatus_Executable,
+	"EC": OrderStatus_ExecutableComplete,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (os OrderStatus) MarshalJSON() ([]byte, error) {
+	elem, ok := orderStatusToString[os]
+	if ok {
+		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
+	}
+
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (os *OrderStatus) UnmarshalJSON(data []byte) error {
+	var j string
+	err := json.Unmarshal(data, &j)
+	if err != nil {
+		return err
+	}
+
+	result, ok := orderStatusToEnum[j]
+	if !ok {
+		return errors.New("couldn't find matching enum value")
+	}
+
+	*os = result
+	return nil
+}

@@ -190,8 +190,27 @@ type OrderRunnerChange struct {
 }
 
 type Order struct {
-	Side string  `json:"side"`
-	Sv   float64 `json:"sv"`
+	Side   OrderSide       `json:"side"`
+	Sv     float64         `json:"sv"`
+	Pt     PersistenceType `json:"pt"`
+	Ot     OrderType       `json:"ot"`
+	P      float64         `json:"p"`
+	Sc     float64         `json:"sc"`
+	Rc     string          `json:"rc"`
+	S      float64         `json:"s"`
+	Pd     uint            `json:"pd"`
+	Rac    string          `json:"rac"`
+	Md     uint            `json:"md"`
+	Ld     uint            `json:"ld"`
+	Sl     float64         `json:"sl"`
+	Avp    float64         `json:"avp"`
+	Sm     float64         `json:"sm"`
+	Rfo    string          `json:"rfo"`
+	ID     string          `json:"id"`
+	BSP    float64         `json:"bsp"`
+	Rfs    string          `json:"rfs"`
+	Status OrderStatus     `json:"status"`
+	Sr     float64         `json:"sr"`
 }
 
 type StrategyMatchChange struct {

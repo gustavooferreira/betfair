@@ -37,11 +37,25 @@ func (rm RequestMessage) MarshalJSON() ([]byte, error) {
 		})
 	} else if rm.Op == "marketSubscription" && rm.MarketSubscriptionMessage != nil {
 		return json.Marshal(&struct {
-			Op string `json:"op"`
-			ID uint32 `json:"id"`
+			Op                  string           `json:"op"`
+			ID                  uint32           `json:"id"`
+			SegmentationEnabled *bool            `json:"segmentationEnabled,omitempty"`
+			Clk                 string           `json:"clk,omitempty"`
+			HeartbeatMs         uint             `json:"heartbeatMs,omitempty"`
+			InitialClk          string           `json:"initialClk,omitempty"`
+			MarketFilter        MarketFilter     `json:"marketFilter,omitempty"`
+			ConflateMs          uint             `json:"conflateMs,omitempty"`
+			MarketDataFilter    MarketDataFilter `json:"marketDataFilter,omitempty"`
 		}{
-			Op: rm.Op,
-			ID: rm.ID,
+			Op:                  rm.Op,
+			ID:                  rm.ID,
+			SegmentationEnabled: rm.MarketSubscriptionMessage.SegmentationEnabled,
+			Clk:                 rm.MarketSubscriptionMessage.Clk,
+			HeartbeatMs:         rm.MarketSubscriptionMessage.HeartbeatMs,
+			InitialClk:          rm.MarketSubscriptionMessage.InitialClk,
+			MarketFilter:        rm.MarketSubscriptionMessage.MarketFilter,
+			ConflateMs:          rm.MarketSubscriptionMessage.ConflateMs,
+			MarketDataFilter:    rm.MarketSubscriptionMessage.MarketDataFilter,
 		})
 	} else if rm.Op == "orderSubscription" && rm.OrderSubscriptionMessage != nil {
 		return json.Marshal(&struct {
@@ -108,6 +122,12 @@ func (rm *ResponseMessage) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		rm.MarketChangeMessage = &marketChangeMessage
+	} else if rm.Op == "ocm" {
+		var orderChangeMessage OrderChangeMessage
+		if err := json.Unmarshal(data, &orderChangeMessage); err != nil {
+			return err
+		}
+		rm.OrderChangeMessage = &orderChangeMessage
 	} else {
 		return errors.New("Invalid object value")
 	}
