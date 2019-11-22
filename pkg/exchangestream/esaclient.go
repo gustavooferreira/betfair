@@ -18,7 +18,7 @@ const maxBufCapacity = 1024 * 1024
 const timeoutDuration = 500 * time.Millisecond
 
 // ESAClient is the client that interacts with betfair Exchange Stream API
-// It's thread safe.
+// It's thread safe!
 type ESAClient struct {
 	// Treated as immutable
 	appKey       string
@@ -31,9 +31,15 @@ type ESAClient struct {
 	msgID        uint32
 	connectionID atomic.Value
 
+	reqMsgChan chan WorkUnit
+
 	// Life cycle management
 	stopChan       chan bool
 	stopInformChan chan bool
+
+	// streams
+	MCMChan chan MarketChangeM
+	OCMChan chan OrderChangeM
 }
 
 func NewESAClient(appKey string, sessionToken string) ESAClient {
@@ -193,9 +199,12 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 	connPhaseDone := false
 
 	respMsgChan := make(chan ResponseMessage, 1000)
-	readerStopChan := make(chan bool)
 	reqMsgChan := make(chan RequestMessage, 1000)
+	readerStopChan := make(chan bool)
 	writerStopInformChan := make(chan bool)
+
+	// LookupTable
+	lookupTable := make(map[uint32](chan ResponseMessage))
 
 	// Spawn reader and writer goroutines
 	go esaclient.reader(respMsgChan, readerStopChan)
@@ -224,9 +233,39 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 				} else {
 					fmt.Printf("this should have never happened - for another ConnectionMessage: %+v", respMsg)
 				}
+			} else if respMsg.Op == "mcm" {
+				esaclient.MCMChan <- MarketChangeM{ID: respMsg.ID, MarketChangeMessage: *respMsg.MarketChangeMessage}
+			} else if respMsg.Op == "ocm" {
+				esaclient.OCMChan <- OrderChangeM{ID: respMsg.ID, OrderChangeMessage: *respMsg.OrderChangeMessage}
+			} else if respMsg.Op == "status" {
+				// Do a lookup and match based on ID!
+				if result, ok := lookupTable[respMsg.ID]; !ok {
+					// Error, no ID found!
+				} else {
+					result <- respMsg
+
+					// Delete entry from the lookup table!
+					delete(lookupTable, respMsg.ID)
+				}
+			} else {
+				// Error!
 			}
 
 			fmt.Printf("Message: %+v\n", respMsg)
+		case workUnit, ok := <-esaclient.reqMsgChan:
+			if !ok {
+				// Error
+			}
+
+			// Check if ID is set, if not, get one and set it on the struct
+			if workUnit.req.ID == 0 {
+				workUnit.req.ID = esaclient.getNewID()
+			}
+
+			lookupTable[workUnit.req.ID] = workUnit.respChan
+
+			// Store Id and channel in lookup table
+			fmt.Printf("%+v\n", workUnit)
 		}
 	}
 }
@@ -252,6 +291,11 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 	esaclient.stopChan = make(chan bool)
 	esaclient.stopInformChan = make(chan bool)
 	connMsgChan := make(chan ConnectionMessage)
+	esaclient.reqMsgChan = make(chan WorkUnit, 1000)
+
+	// Change streams
+	esaclient.MCMChan = make(chan MarketChangeM, 1000)
+	esaclient.OCMChan = make(chan OrderChangeM, 1000)
 
 	// Spawn controller in a goroutine
 	go esaclient.controller(connMsgChan)
@@ -307,97 +351,90 @@ func (esaclient *ESAClient) GetConnectionID() string {
 	return esaclient.connectionID.Load().(string)
 }
 
-// func (esaclient *ESAClient) Authenticate() error {
+func (esaclient *ESAClient) Authenticate() error {
+	replyChan := make(chan ResponseMessage)
+	am := AuthenticationMessage{AppKey: esaclient.appKey, SessionToken: esaclient.sessionToken}
+	reqMsg := RequestMessage{Op: "authenticate", AuthenticationMessage: &am}
+	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
-// 	am := AuthenticationMessage{RequestMessage: RequestMessage{ID: id, Op: "authentication"},
-// 		AppKey:       esaclient.appKey,
-// 		SessionToken: esaclient.sessionToken}
+	select {
+	case resp := <-replyChan:
+		// treat response!
+		fmt.Printf("%+v\n", resp)
+	case <-time.After(3 * time.Second):
+		// call timed out
+		return errors.New("timeout before getting response")
+	}
 
-// 	amBytes, err := json.Marshal(am)
-// 	if err != nil {
-// 		return err
-// 	}
+	return nil
+}
 
-// 	fmt.Println(fmt.Sprintf("Message sent to server: %s", amBytes))
+func (esaclient *ESAClient) Heartbeat() error {
+	replyChan := make(chan ResponseMessage)
+	reqMsg := RequestMessage{Op: "heartbeat"}
+	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
-// 	request := string(amBytes) + "\r\n"
-// 	fmt.Fprintf(esaclient.conn, request)
+	select {
+	case resp := <-replyChan:
+		// treat response!
+		fmt.Printf("%+v\n", resp)
+	case <-time.After(3 * time.Second):
+		// call timed out
+		return errors.New("timeout before getting response")
+	}
 
-// 	_ = esaclient.buffer.Scan()
-// 	message := esaclient.buffer.Text()
+	return nil
+}
 
-// 	fmt.Println("Message from server: " + message)
+func (esaclient *ESAClient) MarketSubscribe(msm MarketSubscriptionMessage) error {
+	replyChan := make(chan ResponseMessage)
+	reqMsg := RequestMessage{Op: "marketSubscription", MarketSubscriptionMessage: &msm}
+	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
-// 	rm := ResponseMessage{}
-// 	json.Unmarshal([]byte(message), &rm)
+	select {
+	case resp := <-replyChan:
+		// treat response!
+		fmt.Printf("%+v\n", resp)
+	case <-time.After(3 * time.Second):
+		// call timed out
+		return errors.New("timeout before getting response")
+	}
 
-// 	if rm.Op != "status" {
-// 		return fmt.Errorf("Unexpected message: %s", message)
-// 	}
+	return nil
+}
 
-// 	sm := rm.StatusMessage
+func (esaclient *ESAClient) OrderSubscribe(osm OrderSubscriptionMessage) error {
+	replyChan := make(chan ResponseMessage)
+	reqMsg := RequestMessage{Op: "orderSubscription", OrderSubscriptionMessage: &osm}
+	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
-// 	if sm.StatusCode == "FAILURE" {
-// 		return fmt.Errorf("ErrorCode %s - ErrorMessage %s", sm.ErrorCode, sm.ErrorMessage)
-// 	}
+	select {
+	case resp := <-replyChan:
+		// treat response!
+		fmt.Printf("%+v\n", resp)
+	case <-time.After(3 * time.Second):
+		// call timed out
+		return errors.New("timeout before getting response")
+	}
 
-// 	return nil
-// }
-
-// func (esaclient *ESAClient) Subscribe(marketID string, id uint32) error {
-// 	sm := SubscriptionMessage{RequestMessage: RequestMessage{Op: "marketSubscription", ID: id},
-// 		MarketFilter:     MarketFilter{MarketIDs: []string{marketID}},
-// 		MarketDataFilter: MarketDataFilter{LadderLevels: 3, Fields: []string{"EX_BEST_OFFERS", "EX_MARKET_DEF", "EX_TRADED_VOL", "EX_LTP"}}}
-
-// 	smBytes, err := json.Marshal(sm)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	fmt.Println(fmt.Sprintf("Message sent to server: %s", smBytes))
-
-// 	request := string(smBytes) + "\r\n"
-// 	fmt.Fprintf(esaclient.conn, request)
-
-// 	return nil
-// }
-
-// func (esaclient *ESAClient) ReadMessage() (ResponseMessage, error) {
-
-// 	// Return object instead of string though!
-// 	if tokenAvail := esaclient.buffer.Scan(); tokenAvail {
-// 		message := esaclient.buffer.Text()
-
-// 		fmt.Println("Message from server: " + message)
-
-// 		rm := ResponseMessage{}
-// 		err := json.Unmarshal([]byte(message), &rm)
-// 		if err != nil {
-// 			return rm, err
-// 		}
-
-// 		return rm, nil
-// 	}
-
-// 	// *net.OpError
-// 	if err := esaclient.buffer.Err(); err != nil {
-// 		// fmt.Fprintln(os.Stderr, "error:", err)
-// 		// fmt.Fprintf(os.Stderr, "error TYPE: %T\n", err)
-// 		return ResponseMessage{}, err
-// 	}
-
-// 	return ResponseMessage{}, fmt.Errorf("unknown error")
-// }
-
-func (esaclient *ESAClient) Heartbeat() {
-	// request = fmt.Sprintf(`{"op": "heartbeat", "id": 2}`)
-	// fmt.Println(request)
-	// fmt.Fprintf(conn, request+"\r\n")
-
-	// message, _ = buf.ReadString('\n')
-	// fmt.Print("Message from server: " + message)
+	return nil
 }
 
 func (esaclient *ESAClient) getNewID() uint32 {
 	return atomic.AddUint32(&esaclient.msgID, 1)
+}
+
+type WorkUnit struct {
+	req      RequestMessage
+	respChan chan ResponseMessage
+}
+
+type MarketChangeM struct {
+	ID uint32
+	MarketChangeMessage
+}
+
+type OrderChangeM struct {
+	ID uint32
+	OrderChangeMessage
 }
