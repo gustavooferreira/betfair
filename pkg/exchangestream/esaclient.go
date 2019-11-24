@@ -30,6 +30,10 @@ type ESAClient struct {
 	// Atomic
 	msgID        uint32
 	connectionID atomic.Value
+	// Wait time (in seconds) before timeout
+	connWaitTime uint32
+	// When sending or receiving messages through channels, how long to wait before giving up (in seconds)
+	chanWaitTime uint32
 
 	reqMsgChan chan WorkUnit
 
@@ -37,15 +41,183 @@ type ESAClient struct {
 	stopChan       chan bool
 	stopInformChan chan bool
 
-	// streams
+	// Change Streams
 	MCMChan chan MarketChangeM
 	OCMChan chan OrderChangeM
 }
 
 func NewESAClient(appKey string, sessionToken string) ESAClient {
 	client := ESAClient{appKey: appKey, sessionToken: sessionToken}
+	// Set some defaults
+	client.connWaitTime = 3
+	client.chanWaitTime = 3
+
 	client.connectionID.Store("")
 	return client
+}
+
+func (esaclient *ESAClient) ChangeSettings(connWaitTime uint32, chanWaitTime uint32) {
+	atomic.StoreUint32(&esaclient.connWaitTime, connWaitTime)
+	atomic.StoreUint32(&esaclient.chanWaitTime, chanWaitTime)
+}
+
+func (esaclient *ESAClient) GetSessionInfo() (string, string, string, uint32) {
+	connID := esaclient.connectionID.Load().(string)
+
+	return esaclient.appKey, esaclient.sessionToken, connID, esaclient.msgID
+}
+
+// Connect connects to the server.
+// When connected, spawn 3 goroutines: controller, reader and writer
+func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecureSkipVerify bool) (err error) {
+
+	// If connectionID != "" then there is a connection already!
+	if esaclient.connectionID.Load().(string) != "" {
+		return ConnectionError{Msg: "connection already established"}
+	}
+
+	config := tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	d := net.Dialer{Timeout: time.Duration(esaclient.connWaitTime) * time.Second}
+	esaclient.conn, err = tls.DialWithDialer(&d, "tcp", serverHost+":"+strconv.Itoa(int(serverPort)), &config)
+	if err != nil {
+		return ConnectionError{Msg: "connecting to betfair failed", Err: err}
+	}
+
+	// TODO: LOG
+	fmt.Println("connection established with server")
+
+	// Init channels
+	esaclient.stopChan = make(chan bool)
+	esaclient.stopInformChan = make(chan bool)
+	esaclient.reqMsgChan = make(chan WorkUnit, 1000)
+	esaclient.MCMChan = make(chan MarketChangeM, 1000)
+	esaclient.OCMChan = make(chan OrderChangeM, 1000)
+
+	connMsgChan := make(chan ConnectionMessage)
+
+	// Spawn controller in a goroutine
+	go esaclient.controller(connMsgChan)
+
+	// Select connMsgChan and Timeout of X seconds
+	// If timeout, bring all 3 goroutines down: controller, reader, writer
+	select {
+	case connMsg := <-connMsgChan:
+		esaclient.connectionID.Store(connMsg.ConnectionID)
+		return nil
+
+	case <-time.After(time.Duration(esaclient.chanWaitTime) * time.Second):
+		// call timed out
+		esaclient.disconnectHelper()
+
+		return errors.New("Timeout while waiting for connection message from betfair")
+	}
+}
+
+// Disconnect disconnects from the server
+func (esaclient *ESAClient) Disconnect() error {
+	// Check that there is a connection to disconnect
+	if esaclient.connectionID.Load().(string) == "" {
+		return fmt.Errorf("no connection available to disconnect")
+	}
+
+	return esaclient.disconnectHelper()
+}
+
+func (esaclient *ESAClient) disconnectHelper() error {
+	close(esaclient.stopChan)
+
+	// Wait for the stop inform to arrive or after X seconds kill the connection anyway
+	select {
+	case <-esaclient.stopInformChan:
+		// success tearing down
+	case <-time.After(time.Duration(esaclient.chanWaitTime) * time.Second):
+		// call timed out
+	}
+
+	err := esaclient.conn.Close()
+	_ = err
+
+	esaclient.connectionID.Store("")
+	atomic.StoreUint32(&esaclient.msgID, 0)
+	return nil
+}
+
+func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
+	fmt.Println("starting controller goroutine")
+	defer fmt.Println("exiting controller goroutine")
+
+	connPhaseDone := false
+
+	respMsgChan := make(chan ResponseMessage, 1000)
+	reqMsgChan := make(chan RequestMessage, 1000)
+	readerStopChan := make(chan bool)
+	writerStopInformChan := make(chan bool)
+
+	// LookupTable
+	lookupTable := make(map[uint32](chan ResponseMessage))
+
+	// Spawn reader and writer goroutines
+	go esaclient.reader(respMsgChan, readerStopChan)
+	go esaclient.writer(reqMsgChan, writerStopInformChan)
+
+	// If stopChan is closed, trigger reader and writer to end too
+	// When getting the connection message, send the data and close the channel
+	for {
+		select {
+		case _, ok := <-esaclient.stopChan:
+			if !ok {
+				esaclient.stopChan = nil
+				close(readerStopChan)
+			}
+		case respMsg, ok := <-respMsgChan:
+			if !ok {
+				close(esaclient.stopInformChan)
+				return
+			}
+
+			if respMsg.Op == "connection" {
+				if !connPhaseDone {
+					connMsgChan <- *respMsg.ConnectionMessage
+					close(connMsgChan)
+					connPhaseDone = true
+				} else {
+					fmt.Printf("this should have never happened - for another ConnectionMessage: %+v", respMsg)
+				}
+			} else if respMsg.Op == "mcm" {
+				esaclient.MCMChan <- MarketChangeM{ID: respMsg.ID, MarketChangeMessage: *respMsg.MarketChangeMessage}
+			} else if respMsg.Op == "ocm" {
+				esaclient.OCMChan <- OrderChangeM{ID: respMsg.ID, OrderChangeMessage: *respMsg.OrderChangeMessage}
+			} else if respMsg.Op == "status" {
+				// Do a lookup and match based on ID!
+				if result, ok := lookupTable[respMsg.ID]; !ok {
+					// Error, no ID found!
+				} else {
+					result <- respMsg
+
+					// Delete entry from the lookup table!
+					delete(lookupTable, respMsg.ID)
+				}
+			} else {
+				// Error!
+			}
+
+			fmt.Printf("Message: %+v\n", respMsg)
+		case workUnit, ok := <-esaclient.reqMsgChan:
+			if !ok {
+				// Error
+			}
+
+			// Check if ID is set, if not, get one and set it on the struct
+			if workUnit.req.ID == 0 {
+				workUnit.req.ID = esaclient.getNewID()
+			}
+
+			lookupTable[workUnit.req.ID] = workUnit.respChan
+
+			// Store Id and channel in lookup table
+			fmt.Printf("%+v\n", workUnit)
+		}
+	}
 }
 
 // reader is responsible for reading all incoming messages and sending the corresponding objects down the channel
@@ -190,165 +362,6 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 			}
 		}
 	}
-}
-
-func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
-	fmt.Println("starting controller goroutine")
-	defer fmt.Println("exiting controller goroutine")
-
-	connPhaseDone := false
-
-	respMsgChan := make(chan ResponseMessage, 1000)
-	reqMsgChan := make(chan RequestMessage, 1000)
-	readerStopChan := make(chan bool)
-	writerStopInformChan := make(chan bool)
-
-	// LookupTable
-	lookupTable := make(map[uint32](chan ResponseMessage))
-
-	// Spawn reader and writer goroutines
-	go esaclient.reader(respMsgChan, readerStopChan)
-	go esaclient.writer(reqMsgChan, writerStopInformChan)
-
-	// If stopChan is closed, trigger reader and writer to end too
-	// When getting the connection message, send the data and close the channel
-	for {
-		select {
-		case _, ok := <-esaclient.stopChan:
-			if !ok {
-				esaclient.stopChan = nil
-				close(readerStopChan)
-			}
-		case respMsg, ok := <-respMsgChan:
-			if !ok {
-				close(esaclient.stopInformChan)
-				return
-			}
-
-			if respMsg.Op == "connection" {
-				if !connPhaseDone {
-					connMsgChan <- *respMsg.ConnectionMessage
-					close(connMsgChan)
-					connPhaseDone = true
-				} else {
-					fmt.Printf("this should have never happened - for another ConnectionMessage: %+v", respMsg)
-				}
-			} else if respMsg.Op == "mcm" {
-				esaclient.MCMChan <- MarketChangeM{ID: respMsg.ID, MarketChangeMessage: *respMsg.MarketChangeMessage}
-			} else if respMsg.Op == "ocm" {
-				esaclient.OCMChan <- OrderChangeM{ID: respMsg.ID, OrderChangeMessage: *respMsg.OrderChangeMessage}
-			} else if respMsg.Op == "status" {
-				// Do a lookup and match based on ID!
-				if result, ok := lookupTable[respMsg.ID]; !ok {
-					// Error, no ID found!
-				} else {
-					result <- respMsg
-
-					// Delete entry from the lookup table!
-					delete(lookupTable, respMsg.ID)
-				}
-			} else {
-				// Error!
-			}
-
-			fmt.Printf("Message: %+v\n", respMsg)
-		case workUnit, ok := <-esaclient.reqMsgChan:
-			if !ok {
-				// Error
-			}
-
-			// Check if ID is set, if not, get one and set it on the struct
-			if workUnit.req.ID == 0 {
-				workUnit.req.ID = esaclient.getNewID()
-			}
-
-			lookupTable[workUnit.req.ID] = workUnit.respChan
-
-			// Store Id and channel in lookup table
-			fmt.Printf("%+v\n", workUnit)
-		}
-	}
-}
-
-// Connect connects to the server.
-// When connected, spawn controller, read and write goroutines!
-func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecureSkipVerify bool) (err error) {
-
-	// If connectionID != "" then there is a connection already!
-	if esaclient.connectionID.Load().(string) != "" {
-		return fmt.Errorf("connection already established")
-	}
-
-	config := tls.Config{InsecureSkipVerify: insecureSkipVerify}
-	d := net.Dialer{Timeout: 3 * time.Second}
-	esaclient.conn, err = tls.DialWithDialer(&d, "tcp", serverHost+":"+strconv.Itoa(int(serverPort)), &config)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("connection established with server")
-
-	esaclient.stopChan = make(chan bool)
-	esaclient.stopInformChan = make(chan bool)
-	connMsgChan := make(chan ConnectionMessage)
-	esaclient.reqMsgChan = make(chan WorkUnit, 1000)
-
-	// Change streams
-	esaclient.MCMChan = make(chan MarketChangeM, 1000)
-	esaclient.OCMChan = make(chan OrderChangeM, 1000)
-
-	// Spawn controller in a goroutine
-	go esaclient.controller(connMsgChan)
-
-	// Select connMsgChan and Timeout of X seconds
-	// If timeout, bring all 3 goroutines down: controller, reader, writer
-	select {
-	case connMsg := <-connMsgChan:
-		esaclient.connectionID.Store(connMsg.ConnectionID)
-		return nil
-
-	case <-time.After(3 * time.Second):
-		// call timed out
-		esaclient.disconnectHelper()
-
-		return errors.New("Timeout while waiting for connection message from betfair")
-	}
-
-	return nil
-}
-
-func (esaclient *ESAClient) Disconnect() error {
-	// Check that there is a connection to disconnect
-	if esaclient.connectionID.Load().(string) == "" {
-		return fmt.Errorf("no connection available to disconnect")
-	}
-
-	return esaclient.disconnectHelper()
-}
-
-func (esaclient *ESAClient) disconnectHelper() error {
-	close(esaclient.stopChan)
-
-	// Wait for the stop inform to arrive or after X seconds kill the connection anyway
-	select {
-	case <-esaclient.stopInformChan:
-		// success tearing down
-	case <-time.After(3 * time.Second):
-		// call timed out
-	}
-
-	esaclient.conn.Close()
-
-	esaclient.connectionID.Store("")
-
-	// Restore id to initial value
-	atomic.StoreUint32(&esaclient.msgID, 0)
-
-	return nil
-}
-
-func (esaclient *ESAClient) GetConnectionID() string {
-	return esaclient.connectionID.Load().(string)
 }
 
 func (esaclient *ESAClient) Authenticate() error {
