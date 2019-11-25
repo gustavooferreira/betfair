@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"github.com/gustavooferreira/betfair/pkg/globals"
+	"github.com/gustavooferreira/betfair/pkg/utils/log"
 	"net"
 	"strconv"
 	"sync/atomic"
@@ -83,8 +84,7 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 		return ConnectionError{Msg: "connecting to betfair failed", Err: err}
 	}
 
-	// TODO: LOG
-	fmt.Println("connection established with server")
+	log.Log(globals.Logger, log.INFO, "connection established with server", nil)
 
 	// Init channels
 	esaclient.stopChan = make(chan bool)
@@ -136,6 +136,8 @@ func (esaclient *ESAClient) disconnectHelper() error {
 
 	err := esaclient.conn.Close()
 	_ = err
+
+	// Close stream channels as well
 
 	esaclient.connectionID.Store("")
 	atomic.StoreUint32(&esaclient.msgID, 0)
@@ -243,11 +245,11 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 		esaclient.conn.SetReadDeadline(time.Now().Add(timeoutDuration))
 
 		n, err := esaclient.conn.Read(buf[indiceStop : len(buf)-1])
-		log.Printf("read %d bytes from connection", n)
+		log.Log(globals.Logger, log.INFO, fmt.Sprintf("read %d bytes from connection", n), nil)
 		if err1, ok := err.(*net.OpError); ok {
 			// If timeout, continue
 			if err1.Timeout() {
-				log.Printf("Timeout: %+v\n", err1)
+				log.Log(globals.Logger, log.INFO, fmt.Sprintf("timeout %+v", err1), nil)
 				continue
 			}
 			fmt.Printf("ERROR: %T - %+[1]v\n", err)
@@ -341,12 +343,12 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 
 			// Call Write with timeout
 			n, err := esaclient.conn.Write(bytes)
-			log.Printf("write %d bytes from connection", n)
+			log.Log(globals.Logger, log.INFO, fmt.Sprintf("write %d bytes from connection", n), nil)
 
 			if err1, ok := err.(*net.OpError); ok {
 				// If timeout, continue
 				if err1.Timeout() {
-					log.Printf("Timeout: %+v\n", err1)
+					log.Log(globals.Logger, log.INFO, fmt.Sprintf("Timeout: %+v", err1), nil)
 					continue
 				}
 				fmt.Printf("ERROR: %T - %+[1]v\n", err)
