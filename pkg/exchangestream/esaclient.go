@@ -81,7 +81,7 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 	d := net.Dialer{Timeout: time.Duration(esaclient.connWaitTime) * time.Second}
 	esaclient.conn, err = tls.DialWithDialer(&d, "tcp", serverHost+":"+strconv.Itoa(int(serverPort)), &config)
 	if err != nil {
-		return ConnectionError{Msg: "connecting to betfair failed", Err: err}
+		return ConnectionFailedError{Msg: "connecting to betfair failed", Err: err}
 	}
 
 	log.Log(globals.Logger, log.INFO, "connection established with server", nil)
@@ -107,9 +107,8 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 
 	case <-time.After(time.Duration(esaclient.chanWaitTime) * time.Second):
 		// call timed out
-		esaclient.disconnectHelper()
-
-		return errors.New("Timeout while waiting for connection message from betfair")
+		err = esaclient.disconnectHelper()
+		return ConnectionFailedError{Msg: "timeout while waiting for connection message from betfair", Err: err}
 	}
 }
 
@@ -117,7 +116,7 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 func (esaclient *ESAClient) Disconnect() error {
 	// Check that there is a connection to disconnect
 	if esaclient.connectionID.Load().(string) == "" {
-		return fmt.Errorf("no connection available to disconnect")
+		return ConnectionError{Msg: "no connection available to disconnect"}
 	}
 
 	return esaclient.disconnectHelper()
@@ -132,21 +131,22 @@ func (esaclient *ESAClient) disconnectHelper() error {
 		// success tearing down
 	case <-time.After(time.Duration(esaclient.chanWaitTime) * time.Second):
 		// call timed out
+		log.Log(globals.Logger, log.ERROR, "timeout while waiting for goroutines to shutdown", nil)
 	}
-
-	err := esaclient.conn.Close()
-	_ = err
-
-	// Close stream channels as well
 
 	esaclient.connectionID.Store("")
 	atomic.StoreUint32(&esaclient.msgID, 0)
-	return nil
+
+	// Close stream channels
+	close(esaclient.MCMChan)
+	close(esaclient.OCMChan)
+
+	return esaclient.conn.Close()
 }
 
 func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
-	fmt.Println("starting controller goroutine")
-	defer fmt.Println("exiting controller goroutine")
+	log.Log(globals.Logger, log.INFO, "starting controller goroutine", nil)
+	defer log.Log(globals.Logger, log.INFO, "exiting controller goroutine", nil)
 
 	connPhaseDone := false
 
@@ -155,7 +155,8 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 	readerStopChan := make(chan bool)
 	writerStopInformChan := make(chan bool)
 
-	// LookupTable
+	// LookupTable (key: msgID)
+	// TODO: implement expiration (if we don't get a response back, it never gets cleared!)
 	lookupTable := make(map[uint32](chan ResponseMessage))
 
 	// Spawn reader and writer goroutines
@@ -170,6 +171,8 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 			if !ok {
 				esaclient.stopChan = nil
 				close(readerStopChan)
+
+				// Stop writer too by closing its channel!
 			}
 		case respMsg, ok := <-respMsgChan:
 			if !ok {
@@ -183,7 +186,7 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 					close(connMsgChan)
 					connPhaseDone = true
 				} else {
-					fmt.Printf("this should have never happened - for another ConnectionMessage: %+v", respMsg)
+					log.Log(globals.Logger, log.ERROR, "got a ConnectionMessage while not being in connection phase", log.Fields{"connectionID": respMsg.ID})
 				}
 			} else if respMsg.Op == "mcm" {
 				esaclient.MCMChan <- MarketChangeM{ID: respMsg.ID, MarketChangeMessage: *respMsg.MarketChangeMessage}
@@ -224,8 +227,8 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 
 // reader is responsible for reading all incoming messages and sending the corresponding objects down the channel
 func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan <-chan bool) {
-	fmt.Println("starting reader goroutine")
-	defer fmt.Println("exiting reader goroutine")
+	log.Log(globals.Logger, log.INFO, "starting reader goroutine", nil)
+	defer log.Log(globals.Logger, log.INFO, "exiting reader goroutine", nil)
 
 	// Create a 8MB buffer for incoming messages
 	var buf [8 * 1024 * 1024]byte
@@ -321,8 +324,8 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 }
 
 func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformChan chan<- bool) {
-	fmt.Println("starting writer goroutine")
-	defer fmt.Println("exiting writer goroutine")
+	log.Log(globals.Logger, log.INFO, "starting writer goroutine", nil)
+	defer log.Log(globals.Logger, log.INFO, "exiting writer goroutine", nil)
 
 	for {
 		select {
