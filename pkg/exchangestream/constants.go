@@ -1,6 +1,6 @@
 package exchangestream
 
 // Consts
-const betfairHostPreProd string = "stream-api-integration.betfair.com"
-const betfairHostProd string = "stream-api.betfair.com"
-const betfairPort uint = 443
+const BetfairHostPreProd string = "stream-api-integration.betfair.com"
+const BetfairHostProd string = "stream-api.betfair.com"
+const BetfairPort uint = 443

@@ -35,6 +35,8 @@ type ESAClient struct {
 	connWaitTime uint32
 	// When sending or receiving messages through channels, how long to wait before giving up (in seconds)
 	chanWaitTime uint32
+	// Reader buffer
+	readerBufferSize uint32
 
 	reqMsgChan chan WorkUnit
 
@@ -52,6 +54,7 @@ func NewESAClient(appKey string, sessionToken string) ESAClient {
 	// Set some defaults
 	client.connWaitTime = 3
 	client.chanWaitTime = 3
+	client.readerBufferSize = 8 * 1024 * 1024
 
 	client.connectionID.Store("")
 	return client
@@ -171,13 +174,18 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 			if !ok {
 				esaclient.stopChan = nil
 				close(readerStopChan)
-
 				// Stop writer too by closing its channel!
+				close(reqMsgChan)
+
+				// Wait on both informs and then return!
+				// When getting both informs, close stopInformChan Channel
+
+				return
 			}
 		case respMsg, ok := <-respMsgChan:
 			if !ok {
-				close(esaclient.stopInformChan)
-				return
+				// 	close(esaclient.stopInformChan)
+				// 	return
 			}
 
 			if respMsg.Op == "connection" {
@@ -196,17 +204,18 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 				// Do a lookup and match based on ID!
 				if result, ok := lookupTable[respMsg.ID]; !ok {
 					// Error, no ID found!
+					log.Log(globals.Logger, log.ERROR, "got status message with no matching ID", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 				} else {
-					result <- respMsg
-
 					// Delete entry from the lookup table!
 					delete(lookupTable, respMsg.ID)
+
+					result <- respMsg
 				}
 			} else {
-				// Error!
+				log.Log(globals.Logger, log.ERROR, "unknown message operation type", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 			}
 
-			fmt.Printf("Message: %+v\n", respMsg)
+			log.Log(globals.Logger, log.DEBUG, "betfair message received", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 		case workUnit, ok := <-esaclient.reqMsgChan:
 			if !ok {
 				// Error
@@ -219,8 +228,7 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 
 			lookupTable[workUnit.req.ID] = workUnit.respChan
 
-			// Store Id and channel in lookup table
-			fmt.Printf("%+v\n", workUnit)
+			reqMsgChan <- workUnit.req
 		}
 	}
 }
@@ -230,17 +238,19 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 	log.Log(globals.Logger, log.INFO, "starting reader goroutine", nil)
 	defer log.Log(globals.Logger, log.INFO, "exiting reader goroutine", nil)
 
-	// Create a 8MB buffer for incoming messages
-	var buf [8 * 1024 * 1024]byte
+	// Create a buffer for incoming messages
+	var buf []byte = make([]byte, esaclient.readerBufferSize)
 	indiceStart := 0
 	indiceStop := 0
 
 	for {
 		// check stopChan without blocking, if set then exit function
 		select {
-		case <-stopChan:
-			close(respMsgChan)
-			return
+		case _, ok := <-stopChan:
+			if !ok {
+				close(respMsgChan)
+				return
+			}
 		default:
 		}
 
@@ -252,19 +262,23 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 		if err1, ok := err.(*net.OpError); ok {
 			// If timeout, continue
 			if err1.Timeout() {
-				log.Log(globals.Logger, log.INFO, fmt.Sprintf("timeout %+v", err1), nil)
+				log.Log(globals.Logger, log.DEBUG, "timeout occured while waiting to read", nil)
 				continue
 			}
-			fmt.Printf("ERROR: %T - %+[1]v\n", err)
+			log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
-			continue
+			// continue
+			return
 		} else if err != nil {
 			// If EOF, connection was closed!!
-			fmt.Printf("ERROR: %T - %+[1]v\n", err)
+			log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
-			continue
+
+			// Inform the main program that connection was closed!
+			// continue
+			return
 		}
 
 		indiceStop += n
@@ -287,15 +301,14 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 						progress = true
 						break
 					} else {
-						// Convert this into a struct
-
-						fmt.Printf("%s\n", buf[indiceStart:i-1])
+						// Log this into its own message field, and define a "type" field that specifies this is message related (like zap)
+						log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("message received: %s", buf[indiceStart:i-1]), nil)
 
 						// Unmarshal into an object
 						respMsg := ResponseMessage{}
 						err = json.Unmarshal(buf[indiceStart:i-1], &respMsg)
 						if err != nil {
-							fmt.Printf("ERROR: %T - %+[1]v\n", err)
+							log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 						} else {
 							// Push the newly created object down the channel
 							respMsgChan <- respMsg
@@ -335,34 +348,40 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 				return
 			}
 
+			log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("struct received on writer: %+v", reqMsg), nil)
+
 			// Marhsal Request
 			bytes, err := json.Marshal(reqMsg)
 			if err != nil {
-				fmt.Printf("ERROR: %T - %+[1]v\n", err)
+				log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 				continue
 			}
 
-			// esaclient.conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
+			log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("message about to be sent: %s", bytes), nil)
+
+			esaclient.conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
 
 			// Call Write with timeout
-			n, err := esaclient.conn.Write(bytes)
-			log.Log(globals.Logger, log.INFO, fmt.Sprintf("write %d bytes from connection", n), nil)
+			n, err := esaclient.conn.Write(append(bytes[:], []byte{'\r', '\n'}...))
+			log.Log(globals.Logger, log.INFO, fmt.Sprintf("write %d bytes to connection", n), nil)
 
 			if err1, ok := err.(*net.OpError); ok {
 				// If timeout, continue
 				if err1.Timeout() {
-					log.Log(globals.Logger, log.INFO, fmt.Sprintf("Timeout: %+v", err1), nil)
+					log.Log(globals.Logger, log.DEBUG, "timeout occured while waiting to write", nil)
 					continue
 				}
-				fmt.Printf("ERROR: %T - %+[1]v\n", err)
+				log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 				// Before continue, prob need to do something with the potential stuff that is in the buffer!
 				// TODO: get the extra data read and update indices!
 				continue
 			} else if err != nil {
 				// If EOF, connection was closed!!
-				fmt.Printf("ERROR: %T - %+[1]v\n", err)
+				log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 				// Before continue, prob need to do something with the potential stuff that is in the buffer!
 				// TODO: get the extra data read and update indices!
+
+				// Inform the main program that connection was closed!
 				continue
 			}
 		}
@@ -372,13 +391,17 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 func (esaclient *ESAClient) Authenticate() error {
 	replyChan := make(chan ResponseMessage)
 	am := AuthenticationMessage{AppKey: esaclient.appKey, SessionToken: esaclient.sessionToken}
-	reqMsg := RequestMessage{Op: "authenticate", AuthenticationMessage: &am}
+	reqMsg := RequestMessage{Op: "authentication", AuthenticationMessage: &am}
 	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
 	select {
 	case resp := <-replyChan:
+		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
+
 		// treat response!
-		fmt.Printf("%+v\n", resp)
+
+		// response can be an error!!!
+
 	case <-time.After(3 * time.Second):
 		// call timed out
 		return errors.New("timeout before getting response")
@@ -394,8 +417,12 @@ func (esaclient *ESAClient) Heartbeat() error {
 
 	select {
 	case resp := <-replyChan:
+		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
+
 		// treat response!
-		fmt.Printf("%+v\n", resp)
+
+		// response can be an error!!!
+
 	case <-time.After(3 * time.Second):
 		// call timed out
 		return errors.New("timeout before getting response")
@@ -411,8 +438,12 @@ func (esaclient *ESAClient) MarketSubscribe(msm MarketSubscriptionMessage) error
 
 	select {
 	case resp := <-replyChan:
+		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
+
 		// treat response!
-		fmt.Printf("%+v\n", resp)
+
+		// response can be an error!!!
+
 	case <-time.After(3 * time.Second):
 		// call timed out
 		return errors.New("timeout before getting response")
@@ -428,8 +459,12 @@ func (esaclient *ESAClient) OrderSubscribe(osm OrderSubscriptionMessage) error {
 
 	select {
 	case resp := <-replyChan:
+		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
+
 		// treat response!
-		fmt.Printf("%+v\n", resp)
+
+		// response can be an error!!!
+
 	case <-time.After(3 * time.Second):
 		// call timed out
 		return errors.New("timeout before getting response")
