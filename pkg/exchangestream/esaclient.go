@@ -38,13 +38,17 @@ type ESAClient struct {
 	// Reader buffer
 	readerBufferSize uint32
 
+	// TODO: These channels need to be initialized when the object is created and never changed again!
+	// Never ever ever close these channels!!!!
 	reqMsgChan chan WorkUnit
 
 	// Life cycle management
+	// Internal channels
 	stopChan       chan bool
 	stopInformChan chan bool
 
 	// Change Streams
+	// Public channel
 	MCMChan chan MarketChangeM
 	OCMChan chan OrderChangeM
 }
