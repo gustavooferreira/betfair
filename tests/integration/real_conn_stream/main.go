@@ -1,7 +1,7 @@
+// run: go run *.go
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	fmt.Println("Script starting")
-
-	// var err error
+	s := fmt.Sprintln("Script starting")
+	fmt.Printf(InfoColor, s)
 
 	AppKey, username, password, certFile, keyFile, connectionTimeout, err := config()
 
@@ -27,65 +26,80 @@ func main() {
 
 	as := auth.NewAuthService(AppKey, username, password, certFile, keyFile, connectionTimeout)
 
-	fmt.Println("Logging in ...")
-	as.SessionToken = "80xwyy64wFT6ogtIBDFjsnb0wDWRBzNplu2AGdqCy5I="
+	fmt.Printf(InfoColor, "Logging in ...\n")
+	as.SessionToken = "XAS4Ksz95Hu1YokUTO+/H7Pi0MWfNdQmLaoUZ5HbX+c="
 	// err = as.Login()
 	// if err != nil {
 	// 	fmt.Printf("Error while logging in: %s\n", err)
 	// 	return
 	// }
 
-	fmt.Println("Session token: ", as.SessionToken)
+	s = fmt.Sprintln("Session token: ", as.SessionToken)
+	fmt.Printf(InfoColor, s)
 
 	globals.Logger = MiniLogger{Level: log.DEBUG}
 	streamLogic(as)
 
-	fmt.Println("Logging out ...")
+	s = fmt.Sprintln("Logging out ...")
+	fmt.Printf(InfoColor, s)
 	// err = as.Logout()
 	// if err != nil {
 	// 	fmt.Printf("Error while logging out: %s\n", err)
 	// }
 
-	fmt.Println("Script ending")
+	s = fmt.Sprintln("Script ending")
+	fmt.Printf(InfoColor, s)
 }
 
 func streamLogic(as auth.AuthService) {
 	esaclient := exchangestream.NewESAClient(as.AppKey, as.SessionToken)
 
-	fmt.Println("Connecting to betfair server ...")
+	s := fmt.Sprintln("Connecting to betfair server ...")
+	fmt.Printf(InfoColor, s)
 	err := esaclient.Connect(exchangestream.BetfairHostProd, exchangestream.BetfairPort, false)
 	if err != nil {
 		var e exchangestream.ConnectionError
 		if errors.As(err, &e) {
-			fmt.Println(err.Error())
+			s = fmt.Sprintln(err.Error())
+			fmt.Printf(InfoColor, s)
 		} else {
-			fmt.Println("Some other error happened while trying to connect to betfair")
-			fmt.Println(err.Error())
+			s = fmt.Sprintln("Some other error happened while trying to connect to betfair")
+			fmt.Printf(InfoColor, s)
+			s = fmt.Sprintln(err.Error())
+			fmt.Printf(InfoColor, s)
 		}
 
 		return
 	}
 
 	a, b, c, d := esaclient.GetSessionInfo()
-	fmt.Printf("AppKey: %s | SessionToken: %s | ConnID: %s | MsgID: %d\n", a, b, c, d)
+	s = fmt.Sprintf("AppKey: %s | SessionToken: %s | ConnID: %s | MsgID: %d\n", a, b, c, d)
+	fmt.Printf(InfoColor, s)
 
 	// time.Sleep(3 * time.Second)
 
-	fmt.Println("Authenticating with exchange stream API ...")
-	err = esaclient.Authenticate()
+	s = fmt.Sprintln("Authenticating with exchange stream API ...")
+	fmt.Printf(InfoColor, s)
+	sm, err := esaclient.Authenticate()
 	if err != nil {
-		fmt.Println("error while trying to authenticate")
+		s = fmt.Sprintln("error while trying to authenticate")
+		fmt.Printf(InfoColor, s)
 		// return
 	} else {
-		fmt.Println("exchange stream authentication successful")
+		s = fmt.Sprintln("exchange stream authentication successful")
+		fmt.Printf(InfoColor, s)
+		s = fmt.Sprintf("STATUS MESSAGE RESPONSE: %+v\n", sm)
+		fmt.Printf(InfoColor, s)
 	}
 
 	time.Sleep(5 * time.Second)
 
-	fmt.Println("Disconnecting from exchange stream API...")
+	s = fmt.Sprintln("Disconnecting from exchange stream API...")
+	fmt.Printf(InfoColor, s)
 	err = esaclient.Disconnect()
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		s = fmt.Sprintf("ERROR: %+v\n", err)
+		fmt.Printf(InfoColor, s)
 	}
 }
 
@@ -118,53 +132,4 @@ func config() (string, string, string, string, string, uint, error) {
 	var connectionTimeout uint = 10
 
 	return AppKey, username, password, certFile, keyFile, connectionTimeout, nil
-}
-
-type MiniLogger struct {
-	Level log.LogLevel
-}
-
-func (ml MiniLogger) Debug(msg string, fields log.Fields) {
-	if ml.Level <= log.DEBUG {
-		timestamp := time.Now().UTC()
-		fmt.Print(generalLogging(msg, "DEBUG", timestamp, fields))
-	}
-}
-
-func (ml MiniLogger) Info(msg string, fields log.Fields) {
-	if ml.Level <= log.INFO {
-		timestamp := time.Now().UTC()
-		fmt.Print(generalLogging(msg, "INFO", timestamp, fields))
-	}
-}
-
-func (ml MiniLogger) Warn(msg string, fields log.Fields) {
-	if ml.Level <= log.WARN {
-		timestamp := time.Now().UTC()
-		fmt.Print(generalLogging(msg, "WARN", timestamp, fields))
-	}
-}
-
-func (ml MiniLogger) Error(msg string, fields log.Fields) {
-	if ml.Level <= log.ERROR {
-		timestamp := time.Now().UTC()
-		fmt.Print(generalLogging(msg, "ERROR", timestamp, fields))
-	}
-}
-
-func generalLogging(msg string, level string, timestamp time.Time, fields log.Fields) string {
-	var container map[string]interface{}
-
-	if len(fields) == 0 {
-		container = map[string]interface{}{"message": msg, "level": level, "timestamp": timestamp.Format(time.RFC3339Nano)}
-	} else {
-		container = map[string]interface{}{"message": msg, "level": level, "extra": fields, "timestamp": timestamp.Format(time.RFC3339Nano)}
-	}
-
-	data, err := json.Marshal(container)
-	if err != nil {
-		return fmt.Sprintf("{\"message\": \"%s\", \"level\":\"%s\", \"timestamp\":\"%s\"}\n", msg, level, timestamp.Format(time.RFC3339Nano))
-	}
-
-	return fmt.Sprintln(string(data))
 }

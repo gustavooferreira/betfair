@@ -6,8 +6,8 @@ import (
 )
 
 type RequestMessage struct {
-	Op                        string `json:"op"`
-	ID                        uint32 `json:"id"`
+	Op                        string  `json:"op"`
+	ID                        *uint32 `json:"id,omitempty"`
 	AuthenticationMessage     *AuthenticationMessage
 	MarketSubscriptionMessage *MarketSubscriptionMessage
 	OrderSubscriptionMessage  *OrderSubscriptionMessage
@@ -17,18 +17,18 @@ type RequestMessage struct {
 func (rm RequestMessage) MarshalJSON() ([]byte, error) {
 	if rm.Op == "heartbeat" {
 		return json.Marshal(&struct {
-			Op string `json:"op"`
-			ID uint32 `json:"id"`
+			Op string  `json:"op"`
+			ID *uint32 `json:"id,omitempty"`
 		}{
 			Op: rm.Op,
 			ID: rm.ID,
 		})
 	} else if rm.Op == "authentication" && rm.AuthenticationMessage != nil {
 		return json.Marshal(&struct {
-			Op           string `json:"op"`
-			ID           uint32 `json:"id"`
-			AppKey       string `json:"appKey"`
-			SessionToken string `json:"session"`
+			Op           string  `json:"op"`
+			ID           *uint32 `json:"id,omitempty"`
+			AppKey       string  `json:"appKey"`
+			SessionToken string  `json:"session"`
 		}{
 			Op:           rm.Op,
 			ID:           rm.ID,
@@ -38,7 +38,7 @@ func (rm RequestMessage) MarshalJSON() ([]byte, error) {
 	} else if rm.Op == "marketSubscription" && rm.MarketSubscriptionMessage != nil {
 		return json.Marshal(&struct {
 			Op                  string           `json:"op"`
-			ID                  uint32           `json:"id"`
+			ID                  *uint32          `json:"id,omitempty"`
 			SegmentationEnabled *bool            `json:"segmentationEnabled,omitempty"`
 			Clk                 string           `json:"clk,omitempty"`
 			HeartbeatMs         uint             `json:"heartbeatMs,omitempty"`
@@ -60,7 +60,7 @@ func (rm RequestMessage) MarshalJSON() ([]byte, error) {
 	} else if rm.Op == "orderSubscription" && rm.OrderSubscriptionMessage != nil {
 		return json.Marshal(&struct {
 			Op                  string      `json:"op"`
-			ID                  uint32      `json:"id"`
+			ID                  *uint32     `json:"id,omitempty"`
 			SegmentationEnabled bool        `json:"segmentationEnabled"`
 			OrderFilter         OrderFilter `json:"orderFilter"`
 			Clk                 string      `json:"clk,omitempty"`
@@ -83,8 +83,8 @@ func (rm RequestMessage) MarshalJSON() ([]byte, error) {
 }
 
 type ResponseMessage struct {
-	Op                  string `json:"op"`
-	ID                  uint32 `json:"id"`
+	Op                  string  `json:"op"`
+	ID                  *uint32 `json:"id,omitempty"`
 	ConnectionMessage   *ConnectionMessage
 	StatusMessage       *StatusMessage
 	MarketChangeMessage *MarketChangeMessage
@@ -94,8 +94,8 @@ type ResponseMessage struct {
 // UnmarshalJSON unmarshals ResponseMessage struct
 func (rm *ResponseMessage) UnmarshalJSON(data []byte) error {
 	temp := struct {
-		Op string `json:"op"`
-		ID uint32 `json:"id"`
+		Op string  `json:"op"`
+		ID *uint32 `json:"id,omitempty"`
 	}{}
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return err

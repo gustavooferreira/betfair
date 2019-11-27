@@ -201,13 +201,16 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 			} else if respMsg.Op == "ocm" {
 				esaclient.OCMChan <- OrderChangeM{ID: respMsg.ID, OrderChangeMessage: *respMsg.OrderChangeMessage}
 			} else if respMsg.Op == "status" {
-				// Do a lookup and match based on ID!
-				if result, ok := lookupTable[respMsg.ID]; !ok {
+				// Validate there is even an ID!
+				if respMsg.ID == nil {
+					// Error, no ID found!
+					log.Log(globals.Logger, log.ERROR, "got status message without an ID", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
+				} else if result, ok := lookupTable[*respMsg.ID]; !ok {
 					// Error, no ID found!
 					log.Log(globals.Logger, log.ERROR, "got status message with no matching ID", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 				} else {
 					// Delete entry from the lookup table!
-					delete(lookupTable, respMsg.ID)
+					delete(lookupTable, *respMsg.ID)
 
 					result <- respMsg
 				}
@@ -222,11 +225,14 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 			}
 
 			// Check if ID is set, if not, get one and set it on the struct
-			if workUnit.req.ID == 0 {
-				workUnit.req.ID = esaclient.getNewID()
+			if workUnit.req.ID == nil {
+				temp := esaclient.getNewID()
+				workUnit.req.ID = &temp
+			} else if *workUnit.req.ID == 0 {
+				*workUnit.req.ID = esaclient.getNewID()
 			}
 
-			lookupTable[workUnit.req.ID] = workUnit.respChan
+			lookupTable[*workUnit.req.ID] = workUnit.respChan
 
 			reqMsgChan <- workUnit.req
 		}
@@ -258,7 +264,9 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 		esaclient.conn.SetReadDeadline(time.Now().Add(timeoutDuration))
 
 		n, err := esaclient.conn.Read(buf[indiceStop : len(buf)-1])
-		log.Log(globals.Logger, log.INFO, fmt.Sprintf("read %d bytes from connection", n), nil)
+
+		log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("read %d bytes from connection", n), nil)
+
 		if err1, ok := err.(*net.OpError); ok {
 			// If timeout, continue
 			if err1.Timeout() {
@@ -281,6 +289,9 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 			return
 		}
 
+		fields := log.Fields{"message": fmt.Sprintf("%s", buf[indiceStart:n]), "type": "reader-data"}
+		log.Log(globals.Logger, log.DEBUG, "reader received message", fields)
+
 		indiceStop += n
 		progress := true
 
@@ -302,7 +313,7 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 						break
 					} else {
 						// Log this into its own message field, and define a "type" field that specifies this is message related (like zap)
-						log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("message received: %s", buf[indiceStart:i-1]), nil)
+						log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("message ready to package: %s", buf[indiceStart:i-1]), nil)
 
 						// Unmarshal into an object
 						respMsg := ResponseMessage{}
@@ -357,13 +368,15 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 				continue
 			}
 
-			log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("message about to be sent: %s", bytes), nil)
+			fields := log.Fields{"message": fmt.Sprintf("%s", bytes), "type": "writer-data"}
+			log.Log(globals.Logger, log.DEBUG, "writer sending message", fields)
 
 			esaclient.conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
 
-			// Call Write with timeout
+			// TODO: Write function might not write all bytes to kernel!
 			n, err := esaclient.conn.Write(append(bytes[:], []byte{'\r', '\n'}...))
-			log.Log(globals.Logger, log.INFO, fmt.Sprintf("write %d bytes to connection", n), nil)
+
+			log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("write %d bytes to connection", n), nil)
 
 			if err1, ok := err.(*net.OpError); ok {
 				// If timeout, continue
@@ -388,7 +401,8 @@ func (esaclient *ESAClient) writer(ReqMsgChan <-chan RequestMessage, stopInformC
 	}
 }
 
-func (esaclient *ESAClient) Authenticate() error {
+// Authenticate authenticates with betfair
+func (esaclient *ESAClient) Authenticate() (StatusMessage, error) {
 	replyChan := make(chan ResponseMessage)
 	am := AuthenticationMessage{AppKey: esaclient.appKey, SessionToken: esaclient.sessionToken}
 	reqMsg := RequestMessage{Op: "authentication", AuthenticationMessage: &am}
@@ -396,81 +410,52 @@ func (esaclient *ESAClient) Authenticate() error {
 
 	select {
 	case resp := <-replyChan:
-		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
-
-		// treat response!
-
-		// response can be an error!!!
-
+		return *resp.StatusMessage, nil
 	case <-time.After(3 * time.Second):
-		// call timed out
-		return errors.New("timeout before getting response")
+		return StatusMessage{}, errors.New("timeout before getting response")
 	}
-
-	return nil
 }
 
-func (esaclient *ESAClient) Heartbeat() error {
+// Heartbeat sends heartbeat message
+func (esaclient *ESAClient) Heartbeat() (StatusMessage, error) {
 	replyChan := make(chan ResponseMessage)
 	reqMsg := RequestMessage{Op: "heartbeat"}
 	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
 	select {
 	case resp := <-replyChan:
-		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
-
-		// treat response!
-
-		// response can be an error!!!
-
+		return *resp.StatusMessage, nil
 	case <-time.After(3 * time.Second):
-		// call timed out
-		return errors.New("timeout before getting response")
+		return StatusMessage{}, errors.New("timeout before getting response")
 	}
-
-	return nil
 }
 
-func (esaclient *ESAClient) MarketSubscribe(msm MarketSubscriptionMessage) error {
+// MarketSubscribe subscribes to markets
+func (esaclient *ESAClient) MarketSubscribe(msm MarketSubscriptionMessage) (StatusMessage, error) {
 	replyChan := make(chan ResponseMessage)
 	reqMsg := RequestMessage{Op: "marketSubscription", MarketSubscriptionMessage: &msm}
 	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
 	select {
 	case resp := <-replyChan:
-		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
-
-		// treat response!
-
-		// response can be an error!!!
-
+		return *resp.StatusMessage, nil
 	case <-time.After(3 * time.Second):
-		// call timed out
-		return errors.New("timeout before getting response")
+		return StatusMessage{}, errors.New("timeout before getting response")
 	}
-
-	return nil
 }
 
-func (esaclient *ESAClient) OrderSubscribe(osm OrderSubscriptionMessage) error {
+// OrderSubscribe subscribes to orders
+func (esaclient *ESAClient) OrderSubscribe(osm OrderSubscriptionMessage) (StatusMessage, error) {
 	replyChan := make(chan ResponseMessage)
 	reqMsg := RequestMessage{Op: "orderSubscription", OrderSubscriptionMessage: &osm}
 	esaclient.reqMsgChan <- WorkUnit{req: reqMsg, respChan: replyChan}
 
 	select {
 	case resp := <-replyChan:
-		log.Log(globals.Logger, log.INFO, fmt.Sprintf("%+v", resp), nil)
-
-		// treat response!
-
-		// response can be an error!!!
-
+		return *resp.StatusMessage, nil
 	case <-time.After(3 * time.Second):
-		// call timed out
-		return errors.New("timeout before getting response")
+		return StatusMessage{}, errors.New("timeout before getting response")
 	}
-
-	return nil
 }
 
 func (esaclient *ESAClient) getNewID() uint32 {
@@ -483,11 +468,11 @@ type WorkUnit struct {
 }
 
 type MarketChangeM struct {
-	ID uint32
+	ID *uint32
 	MarketChangeMessage
 }
 
 type OrderChangeM struct {
-	ID uint32
+	ID *uint32
 	OrderChangeMessage
 }
