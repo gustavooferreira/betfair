@@ -69,7 +69,7 @@ type MarketChangeMessage struct {
 	Mc          []MarketChange `json:"mc"`
 	ConflateMs  uint           `json:"conflateMs"`
 	SegmentType *SegmentType   `json:"segmentType"`
-	Status      uint           `json:"status"`
+	Status      *uint          `json:"status,omitempty"`
 }
 
 type MarketChange struct {
@@ -169,7 +169,7 @@ type OrderChangeMessage struct {
 	InitialClk  string              `json:"initialClk"`
 	ConflateMs  uint                `json:"conflateMs"`
 	SegmentType *SegmentType        `json:"segmentType"`
-	Status      uint                `json:"status"`
+	Status      *uint               `json:"status,omitempty"`
 }
 
 type OrderMarketChange struct {

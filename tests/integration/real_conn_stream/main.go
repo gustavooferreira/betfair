@@ -4,13 +4,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/gustavooferreira/betfair/pkg/auth"
 	"github.com/gustavooferreira/betfair/pkg/exchangestream"
-	"github.com/gustavooferreira/betfair/pkg/globals"
-	"github.com/gustavooferreira/betfair/pkg/utils/log"
 )
 
 func main() {
@@ -27,17 +26,19 @@ func main() {
 	as := auth.NewAuthService(AppKey, username, password, certFile, keyFile, connectionTimeout)
 
 	fmt.Printf(InfoColor, "Logging in ...\n")
-	as.SessionToken = "XAS4Ksz95Hu1YokUTO+/H7Pi0MWfNdQmLaoUZ5HbX+c="
-	// err = as.Login()
-	// if err != nil {
-	// 	fmt.Printf("Error while logging in: %s\n", err)
-	// 	return
-	// }
+	// as.SessionToken = "d4JygGGAl3Hn6/RqGOUhNEFL9y51jZC1euhD8clV3wI="
+	err = as.Login()
+	if err != nil {
+		fmt.Printf("Error while logging in: %s\n", err)
+		return
+	}
 
 	s = fmt.Sprintln("Session token: ", as.SessionToken)
 	fmt.Printf(InfoColor, s)
 
-	globals.Logger = MiniLogger{Level: log.DEBUG}
+	time.Sleep(2 * time.Second)
+
+	// globals.Logger = MiniLogger{Level: log.DEBUG}
 	streamLogic(as)
 
 	s = fmt.Sprintln("Logging out ...")
@@ -54,9 +55,25 @@ func main() {
 func streamLogic(as auth.AuthService) {
 	esaclient := exchangestream.NewESAClient(as.AppKey, as.SessionToken)
 
+	handler, err := esaclient.SetupMetrics()
+	if err != nil {
+		s := fmt.Sprintf("ERROR: %+v\n", err)
+		fmt.Printf(InfoColor, s)
+	} else {
+		http.Handle("/metrics", handler) //Metrics endpoint for scrapping
+
+		go func() {
+			err := http.ListenAndServe(":8080", nil)
+			if err != nil {
+				s := fmt.Sprintf("ERROR: %+v\n", err)
+				fmt.Printf(InfoColor, s)
+			}
+		}()
+	}
+
 	s := fmt.Sprintln("Connecting to betfair server ...")
 	fmt.Printf(InfoColor, s)
-	err := esaclient.Connect(exchangestream.BetfairHostProd, exchangestream.BetfairPort, false)
+	err = esaclient.Connect(exchangestream.BetfairHostProd, exchangestream.BetfairPort, false)
 	if err != nil {
 		var e exchangestream.ConnectionError
 		if errors.As(err, &e) {
@@ -76,8 +93,6 @@ func streamLogic(as auth.AuthService) {
 	s = fmt.Sprintf("AppKey: %s | SessionToken: %s | ConnID: %s | MsgID: %d\n", a, b, c, d)
 	fmt.Printf(InfoColor, s)
 
-	// time.Sleep(3 * time.Second)
-
 	s = fmt.Sprintln("Authenticating with exchange stream API ...")
 	fmt.Printf(InfoColor, s)
 	sm, err := esaclient.Authenticate()
@@ -92,7 +107,36 @@ func streamLogic(as auth.AuthService) {
 		fmt.Printf(InfoColor, s)
 	}
 
-	time.Sleep(5 * time.Second)
+	// Subscribe to markets!
+	mf := exchangestream.MarketFilter{CountryCodes: []string{"GB", "ID"}, EventTypeIDs: []string{"7"}}
+	mdf := exchangestream.MarketDataFilter{Fields: []exchangestream.PriceData{exchangestream.PriceData_ExBestOffers}}
+	msm := exchangestream.MarketSubscriptionMessage{MarketFilter: mf, MarketDataFilter: mdf}
+
+	sm, err = esaclient.MarketSubscribe(msm)
+	if err != nil {
+		s = fmt.Sprintf("ERROR: %+v\n", err)
+		fmt.Printf(InfoColor, s)
+	}
+
+	c1 := make(chan string, 1)
+	go func() {
+		time.Sleep(600 * time.Second)
+		c1 <- "result 1"
+	}()
+
+	run := true
+	for run {
+		select {
+		case resp := <-esaclient.MCMChan:
+			_ = resp
+			// s = fmt.Sprintf("%+v\n", resp)
+			// fmt.Printf(DebugBoldColor, s)
+		case <-c1:
+			// stop
+			run = false
+			break
+		}
+	}
 
 	s = fmt.Sprintln("Disconnecting from exchange stream API...")
 	fmt.Printf(InfoColor, s)

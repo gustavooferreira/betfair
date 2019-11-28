@@ -5,12 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gustavooferreira/betfair/pkg/globals"
-	"github.com/gustavooferreira/betfair/pkg/utils/log"
 	"net"
+	"net/http"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/gustavooferreira/betfair/pkg/globals"
+	"github.com/gustavooferreira/betfair/pkg/utils/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const maxBufCapacity = 1024 * 1024
@@ -37,6 +41,8 @@ type ESAClient struct {
 	chanWaitTime uint32
 	// Reader buffer
 	readerBufferSize uint32
+	// Metrics enable (0 - False | 1 - True)
+	metricsFlag uint32
 
 	// TODO: These channels need to be initialized when the object is created and never changed again!
 	// Never ever ever close these channels!!!!
@@ -51,6 +57,9 @@ type ESAClient struct {
 	// Public channel
 	MCMChan chan MarketChangeM
 	OCMChan chan OrderChangeM
+
+	// Metrics
+	readCounter prometheus.Counter
 }
 
 func NewESAClient(appKey string, sessionToken string) ESAClient {
@@ -62,6 +71,22 @@ func NewESAClient(appKey string, sessionToken string) ESAClient {
 
 	client.connectionID.Store("")
 	return client
+}
+
+func (esaclient *ESAClient) SetupMetrics() (http.Handler, error) {
+	esaclient.readCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "reader_bytes",
+		Help: "Bytes read by the reader",
+	})
+
+	//Registering the defined metric with Prometheus
+	err := prometheus.Register(esaclient.readCounter)
+	if err != nil {
+		return nil, err
+	}
+
+	atomic.StoreUint32(&esaclient.metricsFlag, 1)
+	return promhttp.Handler(), nil
 }
 
 func (esaclient *ESAClient) ChangeSettings(connWaitTime uint32, chanWaitTime uint32) {
@@ -268,6 +293,10 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 		esaclient.conn.SetReadDeadline(time.Now().Add(timeoutDuration))
 
 		n, err := esaclient.conn.Read(buf[indiceStop : len(buf)-1])
+
+		if esaclient.metricsFlag == 1 {
+			esaclient.readCounter.Add(float64(n))
+		}
 
 		log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("read %d bytes from connection", n), nil)
 
