@@ -55,11 +55,12 @@ func main() {
 func streamLogic(as auth.AuthService) {
 	esaclient := exchangestream.NewESAClient(as.AppKey, as.SessionToken)
 
-	handler, err := esaclient.SetupMetrics()
+	err := esaclient.TurnOnMetrics()
 	if err != nil {
 		s := fmt.Sprintf("ERROR: %+v\n", err)
 		fmt.Printf(InfoColor, s)
 	} else {
+		handler := esaclient.GetMetricsHandler()
 		http.Handle("/metrics", handler) //Metrics endpoint for scrapping
 
 		go func() {
