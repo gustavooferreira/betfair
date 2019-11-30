@@ -39,6 +39,20 @@ type MiniLogger struct {
 	Level log.LogLevel
 }
 
+func (ml MiniLogger) Trace(msg string, fields log.Fields) {
+	if ml.Level <= log.TRACE {
+		timestamp := time.Now().UTC()
+		line, color := generalLogging(msg, "TRACE", timestamp, fields)
+
+		if color != "" {
+			s := fmt.Sprintf(colorMapping[color], line)
+			fmt.Println(s)
+		} else {
+			fmt.Println(line)
+		}
+	}
+}
+
 func (ml MiniLogger) Debug(msg string, fields log.Fields) {
 	if ml.Level <= log.DEBUG {
 		timestamp := time.Now().UTC()

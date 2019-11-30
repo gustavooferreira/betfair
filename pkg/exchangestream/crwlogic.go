@@ -18,6 +18,8 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 	reqMsgChan := make(chan RequestMessage, 1000)
 	readerStopChan := make(chan bool)
 	writerStopInformChan := make(chan bool)
+	connTrackerStopChan := make(chan bool)
+	connTrackerStopInformChan := make(chan bool)
 
 	// LookupTable (key: msgID)
 	// TODO: implement expiration (if we don't get a response back, it never gets cleared!)
@@ -26,6 +28,7 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 	// Spawn reader and writer goroutines
 	go esaclient.reader(respMsgChan, readerStopChan)
 	go esaclient.writer(reqMsgChan, writerStopInformChan)
+	go esaclient.connTracker(connTrackerStopChan, connTrackerStopInformChan)
 
 	// If stopChan is closed, trigger reader and writer to end too
 	// When getting the connection message, send the data and close the channel
@@ -34,6 +37,8 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 		case _, ok := <-esaclient.stopChan:
 			if !ok {
 				esaclient.stopChan = nil
+				connTrackerStopChan <- true
+				// TODO: Replace these with passing trues!
 				close(readerStopChan)
 				// Stop writer too by closing its channel!
 				close(reqMsgChan)
@@ -54,8 +59,6 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 					connMsgChan <- *respMsg.ConnectionMessage
 					close(connMsgChan)
 					connPhaseDone = true
-					// Start connection tracker
-					go esaclient.connTracker()
 				} else {
 					log.Log(globals.Logger, log.ERROR, "got a ConnectionMessage while not being in connection phase", log.Fields{"connectionID": respMsg.ID})
 				}
@@ -81,7 +84,7 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 				log.Log(globals.Logger, log.ERROR, "unknown message operation type", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 			}
 
-			log.Log(globals.Logger, log.DEBUG, "betfair message received", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
+			// log.Log(globals.Logger, log.DEBUG, "betfair message received", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 		case workUnit, ok := <-esaclient.reqMsgChan:
 			if !ok {
 				// Error
@@ -159,7 +162,7 @@ func reader(esaclient *ESAClient, respMsgChan chan<- ResponseMessage, stopChan <
 		}
 
 		fields := log.Fields{"message": fmt.Sprintf("%s", buf[indiceStart:n]), "type": "reader-data"}
-		log.Log(globals.Logger, log.DEBUG, "reader received message", fields)
+		log.Log(globals.Logger, log.TRACE, "reader received message", fields)
 
 		indiceStop += n
 		progress := true
@@ -182,7 +185,7 @@ func reader(esaclient *ESAClient, respMsgChan chan<- ResponseMessage, stopChan <
 						break
 					} else {
 						// Log this into its own message field, and define a "type" field that specifies this is message related (like zap)
-						log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("message ready to package: %s", buf[indiceStart:i-1]), nil)
+						log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("message ready to be assembled: %s", buf[indiceStart:i-1]), nil)
 
 						// Unmarshal into an object
 						respMsg := ResponseMessage{}
@@ -191,6 +194,7 @@ func reader(esaclient *ESAClient, respMsgChan chan<- ResponseMessage, stopChan <
 							log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 						} else {
 							// Push the newly created object down the channel
+							esaclient.heartbeatUpdateChan <- 1
 							respMsgChan <- respMsg
 						}
 
@@ -225,7 +229,7 @@ func writer(esaclient *ESAClient, reqMsgChan <-chan RequestMessage, stopInformCh
 				return
 			}
 
-			log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("struct received on writer: %+v", reqMsg), nil)
+			// log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("struct received on writer: %+v", reqMsg), nil)
 
 			// Marhsal Request
 			bytes, err := json.Marshal(reqMsg)
@@ -235,7 +239,7 @@ func writer(esaclient *ESAClient, reqMsgChan <-chan RequestMessage, stopInformCh
 			}
 
 			fields := log.Fields{"message": fmt.Sprintf("%s", bytes), "type": "writer-data"}
-			log.Log(globals.Logger, log.DEBUG, "writer sending message", fields)
+			log.Log(globals.Logger, log.TRACE, "writer sending message", fields)
 
 			esaclient.conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
 
@@ -262,6 +266,41 @@ func writer(esaclient *ESAClient, reqMsgChan <-chan RequestMessage, stopInformCh
 
 				// Inform the main program that connection was closed!
 				continue
+			}
+		}
+	}
+}
+
+func connTracker(esaclient *ESAClient, stopChan <-chan bool, stopInformChan chan<- bool) {
+	// Wait here until Auth has been done
+	select {
+	case <-stopChan:
+		stopInformChan <- true
+		return
+	case <-esaclient.authSuccessChan:
+		// After Auth was successful then proceed
+	}
+
+	// Before calling MarketSubscribe or OrderSubscribe there won't be any heartbeats, but that's fine
+	// because calls to the Heartbeat function must still succeed
+	for {
+		select {
+		case <-stopChan:
+			stopInformChan <- true
+			return
+		case <-esaclient.heartbeatUpdateChan:
+			// Got update
+		case <-time.After(time.Duration(esaclient.heartbeatMultiplier*esaclient.heartbeatMS/100) * time.Millisecond):
+			// Call heartbeat function
+			fields := log.Fields{"source": "connTracker"}
+			log.Log(globals.Logger, log.DEBUG, "time's up, sending heartbeat to check connection status", fields)
+			sm, err := esaclient.Heartbeat()
+			if err != nil {
+				log.Log(globals.Logger, log.ERROR, "error while doing conn tracking", fields)
+			} else if sm.StatusCode != StatusCode_Success {
+				log.Log(globals.Logger, log.ERROR, "heartbeat was not successfull! show status message", fields)
+			} else {
+				log.Log(globals.Logger, log.DEBUG, "got heartbeat response back, connection is good", fields)
 			}
 		}
 	}

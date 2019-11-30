@@ -6,6 +6,7 @@ type Fields map[string]interface{}
 
 // Logger is the logger interface that should be used by libraries to log.
 type Logger interface {
+	Trace(msg string, fields Fields)
 	Debug(msg string, fields Fields)
 	Info(msg string, fields Fields)
 	Warn(msg string, fields Fields)
@@ -15,7 +16,9 @@ type Logger interface {
 // LogLevel defines the log level constants.
 type LogLevel uint
 
+// LogLevels constants
 const (
+	TRACE LogLevel = 5
 	DEBUG LogLevel = 10
 	INFO  LogLevel = 20
 	WARN  LogLevel = 30
@@ -26,6 +29,8 @@ const (
 func Log(log Logger, level LogLevel, msg string, fields Fields) {
 	if log != nil {
 		switch level {
+		case TRACE:
+			log.Trace(msg, fields)
 		case DEBUG:
 			log.Debug(msg, fields)
 		case INFO:

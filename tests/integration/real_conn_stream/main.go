@@ -40,7 +40,7 @@ func main() {
 
 	// time.Sleep(2 * time.Second)
 
-	globals.Logger = MiniLogger{Level: log.DEBUG}
+	globals.Logger = MiniLogger{Level: log.TRACE}
 	streamLogic(as)
 
 	s = fmt.Sprintln("Logging out ...")
@@ -113,7 +113,8 @@ func streamLogic(as auth.AuthService) {
 	}
 
 	// Subscribe to markets!
-	mf := exchangestream.MarketFilter{CountryCodes: []string{"GB", "ID"}, EventTypeIDs: []string{"7"}, MarketTypes: []string{"WIN"}}
+	// mf := exchangestream.MarketFilter{CountryCodes: []string{"GB", "ID"}, EventTypeIDs: []string{"7"}, MarketTypes: []string{"WIN"}}
+	mf := exchangestream.MarketFilter{MarketIDs: []string{"1.165723059"}}
 	mdf := exchangestream.MarketDataFilter{Fields: []exchangestream.PriceData{exchangestream.PriceData_ExBestOffers}}
 	msm := exchangestream.MarketSubscriptionMessage{MarketFilter: mf, MarketDataFilter: mdf}
 
@@ -125,7 +126,7 @@ func streamLogic(as auth.AuthService) {
 
 	c1 := make(chan string, 1)
 	go func() {
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 		c1 <- "result 1"
 	}()
 

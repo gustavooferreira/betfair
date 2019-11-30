@@ -1,6 +1,7 @@
 package exchangestream
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -56,6 +57,8 @@ type ESAClient struct {
 
 	// Inform connection tracker that a new update got in
 	heartbeatUpdateChan chan uint32
+	// Signal auth success
+	authSuccessChan chan bool
 
 	// Change Streams
 	// Public channel
@@ -102,6 +105,29 @@ func (esaclient *ESAClient) GetSessionInfo() (string, string, string, uint32) {
 	return esaclient.appKey, esaclient.sessionToken, connID, esaclient.msgID
 }
 
+type Config struct {
+	// Retries specifies the number of retries allowed.
+	// -1 means infinite number of retries
+	// 0 means to never retry
+	// Any other number greater or equal to 1 means retry X amount of times
+	Retries int
+	// MaximunBackoff specifies the maximun waiting time between actions (in seconds)
+	MaximumBackoff uint
+	// Reconnect specifies whether to retry connecting to server upon undesired disconnection
+	Reconnect bool
+}
+
+// sleepCanBreak is an helper function that sleeps for a specified duration and can be stopped via the context passed in.
+func sleepCanBreak(ctx context.Context, sleep time.Duration) (isBreak bool) {
+	select {
+	case <-ctx.Done():
+		isBreak = true
+	case <-time.After(sleep):
+		isBreak = false
+	}
+	return
+}
+
 // Connect connects to the server.
 // When connected, spawn 3 goroutines: controller, reader and writer
 func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecureSkipVerify bool) (err error) {
@@ -122,6 +148,7 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 
 	// Init channels
 	esaclient.heartbeatUpdateChan = make(chan uint32, 10)
+	esaclient.authSuccessChan = make(chan bool, 10)
 	esaclient.stopChan = make(chan bool)
 	esaclient.stopInformChan = make(chan bool)
 	esaclient.reqMsgChan = make(chan WorkUnit, 1000)
@@ -186,30 +213,11 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 	controller(esaclient, connMsgChan)
 }
 
-func (esaclient *ESAClient) connTracker() {
+func (esaclient *ESAClient) connTracker(stopChan <-chan bool, stopInformChan chan<- bool) {
 	log.Log(globals.Logger, log.INFO, "starting connection tracker goroutine", nil)
 	defer log.Log(globals.Logger, log.INFO, "exiting connection tracker goroutine", nil)
 
-	// Before calling MarketSubscribe or OrderSubscribe there won't be any heartbeats, but that's fine
-	// because calls to the Heartbeat function must still succeed
-	for {
-		select {
-		case <-esaclient.heartbeatUpdateChan:
-			// Got update
-		case <-time.After(time.Duration(esaclient.heartbeatMultiplier*esaclient.heartbeatMS/100) * time.Millisecond):
-			// Call heartbeat function
-			fields := log.Fields{"source": "connTracker"}
-			log.Log(globals.Logger, log.DEBUG, "time's up, sending heartbeat to check connection status", fields)
-			sm, err := esaclient.Heartbeat()
-			if err != nil {
-				log.Log(globals.Logger, log.ERROR, "error while doing conn tracking", fields)
-			} else if sm.StatusCode != StatusCode_Success {
-				log.Log(globals.Logger, log.ERROR, "heartbeat was not successfull! show status message", fields)
-			} else {
-				log.Log(globals.Logger, log.DEBUG, "got heartbeat response back, connection is good", fields)
-			}
-		}
-	}
+	connTracker(esaclient, stopChan, stopInformChan)
 }
 
 // reader is responsible for reading all incoming messages and sending the corresponding objects down the channel
@@ -236,6 +244,9 @@ func (esaclient *ESAClient) Authenticate() (StatusMessage, error) {
 
 	select {
 	case resp := <-replyChan:
+		if resp.StatusMessage.StatusCode == StatusCode_Success {
+			esaclient.authSuccessChan <- true
+		}
 		return *resp.StatusMessage, nil
 	case <-time.After(3 * time.Second):
 		return StatusMessage{}, errors.New("timeout before getting response")
