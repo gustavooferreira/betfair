@@ -3,6 +3,7 @@ package exchangestream
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -39,6 +40,10 @@ type ESAClient struct {
 	readerBufferSize uint32
 	// Metrics enable (0 - False | 1 - True)
 	metricsFlag uint32
+	// heartbeat MS interval (bound between 500ms and 5000ms)
+	heartbeatMS uint32
+	// wait x times the heartbeatMS before sending Heartbeat message (in %) e.g.: 100% means wait for the whole period
+	heartbeatMultiplier uint32
 
 	// TODO: These channels need to be initialized when the object is created and never changed again!
 	// Never ever ever close these channels!!!!
@@ -48,6 +53,9 @@ type ESAClient struct {
 	// Internal channels
 	stopChan       chan bool
 	stopInformChan chan bool
+
+	// Inform connection tracker that a new update got in
+	heartbeatUpdateChan chan uint32
 
 	// Change Streams
 	// Public channel
@@ -64,14 +72,28 @@ func NewESAClient(appKey string, sessionToken string) ESAClient {
 	client.connWaitTime = 3
 	client.chanWaitTime = 3
 	client.readerBufferSize = 8 * 1024 * 1024
+	client.heartbeatMS = 1000
+	client.heartbeatMultiplier = 150
 
 	client.connectionID.Store("")
 	return client
 }
 
-func (esaclient *ESAClient) ChangeSettings(connWaitTime uint32, chanWaitTime uint32) {
+func (esaclient *ESAClient) ChangeSettings(connWaitTime uint32, chanWaitTime uint32, heartbeatMS uint32, heartbeatMultiplier uint32) error {
 	atomic.StoreUint32(&esaclient.connWaitTime, connWaitTime)
 	atomic.StoreUint32(&esaclient.chanWaitTime, chanWaitTime)
+
+	if heartbeatMS < 500 || heartbeatMS > 5000 {
+		return fmt.Errorf("heartbeatMS needs to be between 500ms and 5000ms")
+	}
+	atomic.StoreUint32(&esaclient.heartbeatMS, heartbeatMS)
+
+	if heartbeatMultiplier < 100 {
+		return fmt.Errorf("heartbeatMultiplier needs to be at least 100%%")
+	}
+	atomic.StoreUint32(&esaclient.heartbeatMultiplier, heartbeatMultiplier)
+
+	return nil
 }
 
 func (esaclient *ESAClient) GetSessionInfo() (string, string, string, uint32) {
@@ -99,6 +121,7 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 	log.Log(globals.Logger, log.INFO, "connection established with server", nil)
 
 	// Init channels
+	esaclient.heartbeatUpdateChan = make(chan uint32, 10)
 	esaclient.stopChan = make(chan bool)
 	esaclient.stopInformChan = make(chan bool)
 	esaclient.reqMsgChan = make(chan WorkUnit, 1000)
@@ -161,6 +184,32 @@ func (esaclient *ESAClient) controller(connMsgChan chan<- ConnectionMessage) {
 	defer log.Log(globals.Logger, log.INFO, "exiting controller goroutine", nil)
 
 	controller(esaclient, connMsgChan)
+}
+
+func (esaclient *ESAClient) connTracker() {
+	log.Log(globals.Logger, log.INFO, "starting connection tracker goroutine", nil)
+	defer log.Log(globals.Logger, log.INFO, "exiting connection tracker goroutine", nil)
+
+	// Before calling MarketSubscribe or OrderSubscribe there won't be any heartbeats, but that's fine
+	// because calls to the Heartbeat function must still succeed
+	for {
+		select {
+		case <-esaclient.heartbeatUpdateChan:
+			// Got update
+		case <-time.After(time.Duration(esaclient.heartbeatMultiplier*esaclient.heartbeatMS/100) * time.Millisecond):
+			// Call heartbeat function
+			fields := log.Fields{"source": "connTracker"}
+			log.Log(globals.Logger, log.DEBUG, "time's up, sending heartbeat to check connection status", fields)
+			sm, err := esaclient.Heartbeat()
+			if err != nil {
+				log.Log(globals.Logger, log.ERROR, "error while doing conn tracking", fields)
+			} else if sm.StatusCode != StatusCode_Success {
+				log.Log(globals.Logger, log.ERROR, "heartbeat was not successfull! show status message", fields)
+			} else {
+				log.Log(globals.Logger, log.DEBUG, "got heartbeat response back, connection is good", fields)
+			}
+		}
+	}
 }
 
 // reader is responsible for reading all incoming messages and sending the corresponding objects down the channel

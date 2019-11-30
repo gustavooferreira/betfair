@@ -72,7 +72,7 @@ func streamStuff(as auth.AuthService) {
 
 	// select {}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 	fmt.Println("disconnecting ...")
 	err = esaclient.Disconnect()
 	if err != nil {

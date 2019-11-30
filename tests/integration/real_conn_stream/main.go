@@ -10,6 +10,8 @@ import (
 
 	"github.com/gustavooferreira/betfair/pkg/auth"
 	"github.com/gustavooferreira/betfair/pkg/exchangestream"
+	"github.com/gustavooferreira/betfair/pkg/globals"
+	"github.com/gustavooferreira/betfair/pkg/utils/log"
 )
 
 func main() {
@@ -26,19 +28,19 @@ func main() {
 	as := auth.NewAuthService(AppKey, username, password, certFile, keyFile, connectionTimeout)
 
 	fmt.Printf(InfoColor, "Logging in ...\n")
-	// as.SessionToken = "d4JygGGAl3Hn6/RqGOUhNEFL9y51jZC1euhD8clV3wI="
-	err = as.Login()
-	if err != nil {
-		fmt.Printf("Error while logging in: %s\n", err)
-		return
-	}
+	as.SessionToken = "doPJ9M5u0YtlRYHQ4WI5mE9sKNjo2D9LJiMDkSXeLy0="
+	// err = as.Login()
+	// if err != nil {
+	// 	fmt.Printf("Error while logging in: %s\n", err)
+	// 	return
+	// }
 
 	s = fmt.Sprintln("Session token: ", as.SessionToken)
 	fmt.Printf(InfoColor, s)
 
-	time.Sleep(2 * time.Second)
+	// time.Sleep(2 * time.Second)
 
-	// globals.Logger = MiniLogger{Level: log.DEBUG}
+	globals.Logger = MiniLogger{Level: log.DEBUG}
 	streamLogic(as)
 
 	s = fmt.Sprintln("Logging out ...")
@@ -94,6 +96,8 @@ func streamLogic(as auth.AuthService) {
 	s = fmt.Sprintf("AppKey: %s | SessionToken: %s | ConnID: %s | MsgID: %d\n", a, b, c, d)
 	fmt.Printf(InfoColor, s)
 
+	// time.Sleep(2 * time.Second)
+
 	s = fmt.Sprintln("Authenticating with exchange stream API ...")
 	fmt.Printf(InfoColor, s)
 	sm, err := esaclient.Authenticate()
@@ -109,7 +113,7 @@ func streamLogic(as auth.AuthService) {
 	}
 
 	// Subscribe to markets!
-	mf := exchangestream.MarketFilter{CountryCodes: []string{"GB", "ID"}, EventTypeIDs: []string{"7"}}
+	mf := exchangestream.MarketFilter{CountryCodes: []string{"GB", "ID"}, EventTypeIDs: []string{"7"}, MarketTypes: []string{"WIN"}}
 	mdf := exchangestream.MarketDataFilter{Fields: []exchangestream.PriceData{exchangestream.PriceData_ExBestOffers}}
 	msm := exchangestream.MarketSubscriptionMessage{MarketFilter: mf, MarketDataFilter: mdf}
 
@@ -121,7 +125,7 @@ func streamLogic(as auth.AuthService) {
 
 	c1 := make(chan string, 1)
 	go func() {
-		time.Sleep(600 * time.Second)
+		time.Sleep(10 * time.Second)
 		c1 <- "result 1"
 	}()
 

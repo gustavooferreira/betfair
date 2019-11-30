@@ -3,6 +3,7 @@ package exchangestream
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -53,6 +54,8 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 					connMsgChan <- *respMsg.ConnectionMessage
 					close(connMsgChan)
 					connPhaseDone = true
+					// Start connection tracker
+					go esaclient.connTracker()
 				} else {
 					log.Log(globals.Logger, log.ERROR, "got a ConnectionMessage while not being in connection phase", log.Fields{"connectionID": respMsg.ID})
 				}
@@ -123,7 +126,9 @@ func reader(esaclient *ESAClient, respMsgChan chan<- ResponseMessage, stopChan <
 		n, err := esaclient.conn.Read(buf[indiceStop : len(buf)-1])
 
 		if esaclient.metricsFlag == 1 {
-			esaclient.readCounter.Add(float64(n))
+			if n != 0 {
+				esaclient.readCounter.Add(float64(n))
+			}
 		}
 
 		log.Log(globals.Logger, log.DEBUG, fmt.Sprintf("read %d bytes from connection", n), nil)
@@ -139,6 +144,9 @@ func reader(esaclient *ESAClient, respMsgChan chan<- ResponseMessage, stopChan <
 			// TODO: get the extra data read and update indices!
 			// continue
 			return
+		} else if err == io.EOF {
+			// Stream was disconnected!
+			log.Log(globals.Logger, log.ERROR, "connection closed on the server side", nil)
 		} else if err != nil {
 			// If EOF, connection was closed!!
 			log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
