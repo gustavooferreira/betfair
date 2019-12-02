@@ -10,36 +10,36 @@ type AuthenticationMessage struct {
 }
 
 type StatusMessage struct {
-	ErrorMessage     string     `json:"errorMessage"`
-	ErrorCode        ErrorCode  `json:"errorCode"`
+	ErrorMessage     string     `json:"errorMessage,omitempty"`
+	ErrorCode        ErrorCode  `json:"errorCode,omitempty"`
 	ConnectionID     string     `json:"connectionId"`
 	ConnectionClosed *bool      `json:"connectionClosed"`
 	StatusCode       StatusCode `json:"statusCode"`
 }
 
 type OrderSubscriptionMessage struct {
-	SegmentationEnabled bool        `json:"segmentationEnabled"`
-	OrderFilter         OrderFilter `json:"orderFilter"`
-	Clk                 string      `json:"clk,omitempty"`
-	HeartbeatMs         uint        `json:"heartbeatMs,omitempty"`
-	InitialClk          string      `json:"initialClk,omitempty"`
-	ConflateMs          uint        `json:"conflateMs,omitempty"`
+	SegmentationEnabled bool         `json:"segmentationEnabled"`
+	OrderFilter         *OrderFilter `json:"orderFilter,omitempty"`
+	Clk                 string       `json:"clk,omitempty"`
+	HeartbeatMs         uint         `json:"heartbeatMs,omitempty"`
+	InitialClk          string       `json:"initialClk,omitempty"`
+	ConflateMs          uint         `json:"conflateMs"`
 }
 
 type OrderFilter struct {
-	IncludeOverallPosition        *bool    `json:"includeOverallPosition"`
-	CustomerStrategyRefs          []string `json:"customerStrategyRefs"`
-	PartitionMatchedByStrategyRef *bool    `json:"partitionMatchedByStrategyRef"`
+	IncludeOverallPosition        *bool    `json:"includeOverallPosition,omitempty"`
+	CustomerStrategyRefs          []string `json:"customerStrategyRefs,omitempty"`
+	PartitionMatchedByStrategyRef *bool    `json:"partitionMatchedByStrategyRef,omitempty"`
 }
 
 type MarketSubscriptionMessage struct {
-	SegmentationEnabled *bool            `json:"segmentationEnabled,omitempty"`
+	SegmentationEnabled bool             `json:"segmentationEnabled"`
 	Clk                 string           `json:"clk,omitempty"`
 	HeartbeatMs         uint             `json:"heartbeatMs,omitempty"`
 	InitialClk          string           `json:"initialClk,omitempty"`
-	MarketFilter        MarketFilter     `json:"marketFilter,omitempty"`
-	ConflateMs          uint             `json:"conflateMs,omitempty"`
-	MarketDataFilter    MarketDataFilter `json:"marketDataFilter,omitempty"`
+	MarketFilter        MarketFilter     `json:"marketFilter"`
+	ConflateMs          uint             `json:"conflateMs"`
+	MarketDataFilter    MarketDataFilter `json:"marketDataFilter"`
 }
 
 type MarketFilter struct {
@@ -61,30 +61,30 @@ type MarketDataFilter struct {
 }
 
 type MarketChangeMessage struct {
-	Ct          *ChangeType    `json:"ct"`
-	Clk         string         `json:"clk"`
-	HeartbeatMs uint           `json:"heartbeatMs"`
-	Pt          uint           `json:"pt"`
-	InitialClk  string         `json:"initialClk"`
-	Mc          []MarketChange `json:"mc"`
-	ConflateMs  uint           `json:"conflateMs"`
-	SegmentType *SegmentType   `json:"segmentType"`
-	Status      *uint          `json:"status,omitempty"`
+	ChangeType    *ChangeType    `json:"ct,omitempty"`
+	Clk           string         `json:"clk"`
+	HeartbeatMs   uint           `json:"heartbeatMs"`
+	PublishTime   uint           `json:"pt"`
+	InitialClk    string         `json:"initialClk"`
+	MarketChanges []MarketChange `json:"mc,omitempty"`
+	ConflateMs    uint           `json:"conflateMs"`
+	SegmentType   *SegmentType   `json:"segmentType,omitempty"`
+	Status        *uint          `json:"status,omitempty"`
 }
 
 type MarketChange struct {
-	Rc               []RunnerChange   `json:"rc"`
-	Img              *bool            `json:"img"`
-	Tv               *float64         `json:"tv"`
-	Con              *bool            `json:"con"`
-	MarketDefinition MarketDefinition `json:"marketDefinition"`
-	ID               string           `json:"id"`
+	RunnerChanges    []RunnerChange    `json:"rc,omitempty"`
+	Image            *bool             `json:"img,omitempty"`
+	TotalVolume      *float64          `json:"tv"`
+	Conflated        *bool             `json:"con,omitempty"`
+	MarketDefinition *MarketDefinition `json:"marketDefinition,omitempty"`
+	ID               string            `json:"id"`
 }
 
 type MarketDefinition struct {
 	Venue                 string                `json:"venue"`
 	RaceType              string                `json:"raceType"`
-	SettledTime           string                `json:"settledTime"`
+	SettledTime           string                `json:"settledTime"` // TODO: time.Time!
 	Timezone              string                `json:"timezone"`
 	EachWayDivisor        float64               `json:"eachWayDivisor"`
 	Regulators            []string              `json:"regulators"`
@@ -93,37 +93,37 @@ type MarketDefinition struct {
 	NumberOfWinners       uint                  `json:"numberOfWinners"`
 	CountryCode           string                `json:"countryCode"`
 	LineMaxUnit           float64               `json:"lineMaxUnit"`
-	InPlay                *bool                 `json:"inPlay"`
+	InPlay                *bool                 `json:"inPlay,omitempty"`
 	BetDelay              uint                  `json:"betDelay"`
-	BSPMarket             *bool                 `json:"bspMarket"`
+	BSPMarket             *bool                 `json:"bspMarket,omitempty"`
 	BettingType           BettingType           `json:"bettingType"`
 	NumberOfActiveRunners uint                  `json:"numberOfActiveRunners"`
 	LineMinUnit           float64               `json:"lineMinUnit"`
 	EventID               string                `json:"eventId"`
-	CrossMatching         *bool                 `json:"crossMatching"`
-	RunnersVoidable       *bool                 `json:"runnersVoidable"`
-	TurnInPlayEnabled     *bool                 `json:"turnInPlayEnabled"`
+	CrossMatching         *bool                 `json:"crossMatching,omitempty"`
+	RunnersVoidable       *bool                 `json:"runnersVoidable,omitempty"`
+	TurnInPlayEnabled     *bool                 `json:"turnInPlayEnabled,omitempty"`
 	PriceLadderDefinition PriceLadderDefinition `json:"priceLadderDefinition"`
 	KeyLineDefinition     KeyLineDefinition     `json:"keyLineDefinition"`
-	SuspendTime           string                `json:"suspendTime"`
-	DiscountAllowed       *bool                 `json:"discountAllowed"`
-	PersistenceEnabled    *bool                 `json:"persistenceEnabled"`
+	SuspendTime           string                `json:"suspendTime"` // TODO: time.Time!
+	DiscountAllowed       *bool                 `json:"discountAllowed,omitempty"`
+	PersistenceEnabled    *bool                 `json:"persistenceEnabled,omitempty"`
 	Runners               []RunnerDefinition    `json:"runners"`
 	Version               uint                  `json:"version"`
 	EventTypeID           string                `json:"eventTypeId"`
-	Complete              *bool                 `json:"complete"`
-	OpenDate              string                `json:"openDate"`
-	MarketTime            string                `json:"marketTime"`
-	BSPReconciled         *bool                 `json:"bspReconciled"`
+	Complete              *bool                 `json:"complete,omitempty"`
+	OpenDate              string                `json:"openDate"`   // TODO: time.Time!
+	MarketTime            string                `json:"marketTime"` // TODO: time.Time!
+	BSPReconciled         *bool                 `json:"bspReconciled,omitempty"`
 	LineInterval          float64               `json:"lineInterval"`
 	Status                RaceStatus            `json:"status"`
 }
 
 type RunnerDefinition struct {
 	SortPriority     uint       `json:"sortPriority"`
-	RemovalDate      string     `json:"removalDate"`
+	RemovalDate      string     `json:"removalDate"` // TODO: time.Time!
 	ID               uint       `json:"id"`
-	Hc               float64    `json:"hc"`
+	Handicap         *float64   `json:"hc,omitempty"`
 	AdjustmentFactor float64    `json:"adjustmentFactor"`
 	BSP              float64    `json:"bsp"`
 	Status           RaceStatus `json:"status"`
@@ -138,82 +138,82 @@ type KeyLineDefinition struct {
 }
 
 type KeyLineSelection struct {
-	Id uint    `json:"id"`
-	Hc float64 `json:"hc"`
+	ID       uint    `json:"id"`
+	Handicap float64 `json:"hc"`
 }
 
 type RunnerChange struct {
-	Tv    float64     `json:"tv"`
-	Batb  [][]float64 `json:"batb"`
-	Spb   [][]float64 `json:"spb"`
-	Bdatl [][]float64 `json:"bdatl"`
-	Trd   [][]float64 `json:"trd"`
-	Spf   float64     `json:"spf"`
-	Ltp   float64     `json:"ltp"`
-	Atb   [][]float64 `json:"atb"`
-	Spl   [][]float64 `json:"spl"`
-	Spn   float64     `json:"spn"`
-	Atl   [][]float64 `json:"atl"`
-	Batl  [][]float64 `json:"batl"`
-	ID    uint        `json:"id"`
-	Hc    float64     `json:"hc"`
-	Bdatb [][]float64 `json:"bdatb"`
+	TotalVolume *float64    `json:"tv,omitempty"`
+	BATB        [][]float64 `json:"batb,omitempty"`
+	SPB         [][]float64 `json:"spb",omitempty`
+	BDATL       [][]float64 `json:"bdatl",omitempty`
+	TRD         [][]float64 `json:"trd",omitempty`
+	SPF         *float64    `json:"spf",omitempty`
+	LTP         *float64    `json:"ltp",omitempty`
+	ATB         [][]float64 `json:"atb",omitempty`
+	SPL         [][]float64 `json:"spl",omitempty`
+	SPN         *float64    `json:"spn",omitempty`
+	ATL         [][]float64 `json:"atl",omitempty`
+	BATL        [][]float64 `json:"batl",omitempty`
+	ID          uint        `json:"id",omitempty`
+	Handicap    *float64    `json:"hc",omitempty`
+	BDATB       [][]float64 `json:"bdatb",omitempty`
 }
 
 type OrderChangeMessage struct {
-	Ct          *ChangeType         `json:"ct"`
-	Clk         string              `json:"clk"`
-	HeartbeatMs uint                `json:"heartbeatMs"`
-	Pt          uint                `json:"pt"`
-	Oc          []OrderMarketChange `json:"oc"`
-	InitialClk  string              `json:"initialClk"`
-	ConflateMs  uint                `json:"conflateMs"`
-	SegmentType *SegmentType        `json:"segmentType"`
-	Status      *uint               `json:"status,omitempty"`
+	ChangeType         *ChangeType         `json:"ct,omitempty"`
+	Clk                string              `json:"clk"`
+	HeartbeatMs        uint                `json:"heartbeatMs"`
+	PublishTime        uint                `json:"pt"`
+	OrderMarketChanges []OrderMarketChange `json:"oc,omitempty"`
+	InitialClk         string              `json:"initialClk"`
+	ConflateMs         uint                `json:"conflateMs"`
+	SegmentType        *SegmentType        `json:"segmentType,omitempty"`
+	Status             *uint               `json:"status,omitempty"`
 }
 
 type OrderMarketChange struct {
-	AccountID uint                `json:"accountId"`
-	Orc       []OrderRunnerChange `json:"orc"`
-	Closed    *bool               `json:"closed"`
-	ID        string              `json:"id"`
+	AccountID    uint                `json:"accountId"`
+	OrderChanges []OrderRunnerChange `json:"orc,omitempty"`
+	Closed       *bool               `json:"closed"`
+	ID           string              `json:"id"`
 }
 
 type OrderRunnerChange struct {
-	Mb        [][]float64                    `json:"mb"`
-	Smc       map[string]StrategyMatchChange `json:"smc"`
-	Uo        []Order                        `json:"uo"`
-	ID        uint                           `json:"id"`
-	Hc        float64                        `json:"hc"`
-	FullImage *bool                          `json:"fullImage"`
-	Ml        [][]float64                    `json:"ml"`
+	MatchedBacks    [][]float64                    `json:"mb,omitempty"`
+	StrategyMatches map[string]StrategyMatchChange `json:"smc",omitempty`
+	UnmatchedOrders []Order                        `json:"uo",omitempty`
+	ID              uint                           `json:"id"`
+	Handicap        float64                        `json:"hc",omitempty`
+	FullImage       *bool                          `json:"fullImage",omitempty`
+	MatchedLays     [][]float64                    `json:"ml",omitempty`
 }
 
 type Order struct {
-	Side   OrderSide       `json:"side"`
-	Sv     float64         `json:"sv"`
-	Pt     PersistenceType `json:"pt"`
-	Ot     OrderType       `json:"ot"`
-	P      float64         `json:"p"`
-	Sc     float64         `json:"sc"`
-	Rc     string          `json:"rc"`
-	S      float64         `json:"s"`
-	Pd     uint            `json:"pd"`
-	Rac    string          `json:"rac"`
-	Md     uint            `json:"md"`
-	Ld     uint            `json:"ld"`
-	Sl     float64         `json:"sl"`
-	Avp    float64         `json:"avp"`
-	Sm     float64         `json:"sm"`
-	Rfo    string          `json:"rfo"`
-	ID     string          `json:"id"`
-	BSP    float64         `json:"bsp"`
-	Rfs    string          `json:"rfs"`
-	Status OrderStatus     `json:"status"`
-	Sr     float64         `json:"sr"`
+	Side                OrderSide       `json:"side"`
+	SizeVoided          float64         `json:"sv"`
+	PersistenceType     PersistenceType `json:"pt"`
+	OrderType           OrderType       `json:"ot"`
+	Price               float64         `json:"p"`
+	SizeCancelled       float64         `json:"sc"`
+	RegulatorCode       string          `json:"rc"`
+	Size                float64         `json:"s"`
+	PlacedDate          uint            `json:"pd"` //TODO: time.Time!
+	RegulatorAuthCode   string          `json:"rac"`
+	MatchedDate         *uint           `json:"md,omitempty"` //TODO: time.Time!
+	LapsedDate          *uint           `json:"ld,omitempty"` //TODO: time.Time!
+	SizeLapsed          float64         `json:"sl"`
+	AveragePriceMatched *float64        `json:"avp,omitempty"`
+	SizeMatched         float64         `json:"sm"`
+	OrderReference      *string         `json:"rfo,omitempty"`
+	ID                  string          `json:"id"`
+	BSP                 *float64        `json:"bsp,omitempty"`
+	StrategyReference   *string         `json:"rfs,omitempty"`
+	Status              OrderStatus     `json:"status"`
+	SizeRemaining       float64         `json:"sr"`
 }
 
 type StrategyMatchChange struct {
-	Mb [][]float64 `json:"mb"`
-	Ml [][]float64 `json:"ml"`
+	MatchedBacks [][]float64 `json:"mb,omitempty"`
+	MatchedLays  [][]float64 `json:"ml,omitempty"`
 }

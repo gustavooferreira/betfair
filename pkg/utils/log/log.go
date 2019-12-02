@@ -18,11 +18,11 @@ type LogLevel uint
 
 // LogLevels constants
 const (
-	TRACE LogLevel = 5
-	DEBUG LogLevel = 10
-	INFO  LogLevel = 20
-	WARN  LogLevel = 30
-	ERROR LogLevel = 40
+	TRACE LogLevel = 10
+	DEBUG LogLevel = 20
+	INFO  LogLevel = 30
+	WARN  LogLevel = 40
+	ERROR LogLevel = 50
 )
 
 // Log is an internal helper function to be used by this library.

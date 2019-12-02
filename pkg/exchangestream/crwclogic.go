@@ -11,12 +11,16 @@ import (
 	"github.com/gustavooferreira/betfair/pkg/utils/log"
 )
 
+// Timeout used by reader and writer
+// timeout of 0.5 seconds
+const timeoutDuration = 500 * time.Millisecond
+
 func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 	connPhaseDone := false
 
 	respMsgChan := make(chan ResponseMessage, 1000)
-	reqMsgChan := make(chan RequestMessage, 1000)
 	readerStopChan := make(chan bool)
+	reqMsgChan := make(chan RequestMessage, 1000)
 	writerStopInformChan := make(chan bool)
 	connTrackerStopChan := make(chan bool)
 	connTrackerStopInformChan := make(chan bool)
@@ -25,34 +29,32 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 	// TODO: implement expiration (if we don't get a response back, it never gets cleared!)
 	lookupTable := make(map[uint32](chan ResponseMessage))
 
-	// Spawn reader and writer goroutines
+	// Spawn reader, writer and connTracker goroutines
 	go esaclient.reader(respMsgChan, readerStopChan)
 	go esaclient.writer(reqMsgChan, writerStopInformChan)
 	go esaclient.connTracker(connTrackerStopChan, connTrackerStopInformChan)
 
-	// If stopChan is closed, trigger reader and writer to end too
+	// If we get a signal on stopChan, trigger reader, writer and connTracker to end too
 	// When getting the connection message, send the data and close the channel
 	for {
 		select {
-		case _, ok := <-esaclient.stopChan:
-			if !ok {
-				esaclient.stopChan = nil
-				connTrackerStopChan <- true
-				// TODO: Replace these with passing trues!
-				close(readerStopChan)
-				// Stop writer too by closing its channel!
-				close(reqMsgChan)
+		case <-esaclient.stopChan:
+			close(connTrackerStopChan)
+			close(readerStopChan)
+			close(reqMsgChan)
 
-				// Wait on both informs and then return!
-				// When getting both informs, close stopInformChan Channel
+			// Wait on all 3 informs and then return!
+			// When getting all informs, send signal on stopInformChan Channel
+			esaclient.stopInformChan <- true
 
-				return
-			}
+			return
 		case respMsg, ok := <-respMsgChan:
 			if !ok {
+				// This should never happen!
 				// 	close(esaclient.stopInformChan)
 				// 	return
 			}
+			// log.Log(globals.Logger, log.DEBUG, "betfair message received", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 
 			if respMsg.Op == "connection" {
 				if !connPhaseDone {
@@ -83,10 +85,9 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 			} else {
 				log.Log(globals.Logger, log.ERROR, "unknown message operation type", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 			}
-
-			// log.Log(globals.Logger, log.DEBUG, "betfair message received", log.Fields{"message": fmt.Sprintf("%+v", respMsg)})
 		case workUnit, ok := <-esaclient.reqMsgChan:
 			if !ok {
+				// This should never happen!
 				// Error
 			}
 
@@ -97,6 +98,9 @@ func controller(esaclient *ESAClient, connMsgChan chan<- ConnectionMessage) {
 			} else if *workUnit.req.ID == 0 {
 				*workUnit.req.ID = esaclient.getNewID()
 			}
+
+			// TODO: If message if of type MarketSub or OrderSub set heartbeatMS!
+			// _ = esaclient.heartbeatMS
 
 			lookupTable[*workUnit.req.ID] = workUnit.respChan
 
@@ -145,19 +149,21 @@ func reader(esaclient *ESAClient, respMsgChan chan<- ResponseMessage, stopChan <
 			log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
-			// continue
+
+			// Inform the main program that connection was closed!
 			return
 		} else if err == io.EOF {
-			// Stream was disconnected!
+			// Connection was disconnected!
 			log.Log(globals.Logger, log.ERROR, "connection closed on the server side", nil)
+
+			// Inform the main program that connection was closed!
+			return
 		} else if err != nil {
-			// If EOF, connection was closed!!
 			log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 			// Before continue, prob need to do something with the potential stuff that is in the buffer!
 			// TODO: get the extra data read and update indices!
 
 			// Inform the main program that connection was closed!
-			// continue
 			return
 		}
 
@@ -257,7 +263,15 @@ func writer(esaclient *ESAClient, reqMsgChan <-chan RequestMessage, stopInformCh
 				log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
 				// Before continue, prob need to do something with the potential stuff that is in the buffer!
 				// TODO: get the extra data read and update indices!
-				continue
+
+				// Inform the main program that connection was closed!
+				return
+			} else if err == io.EOF {
+				// Connection was disconnected!
+				log.Log(globals.Logger, log.ERROR, "connection closed on the server side", nil)
+
+				// Inform the main program that connection was closed!
+				return
 			} else if err != nil {
 				// If EOF, connection was closed!!
 				log.Log(globals.Logger, log.ERROR, fmt.Sprintf("error: type [%T] - %+[1]v", err), nil)
@@ -265,7 +279,7 @@ func writer(esaclient *ESAClient, reqMsgChan <-chan RequestMessage, stopInformCh
 				// TODO: get the extra data read and update indices!
 
 				// Inform the main program that connection was closed!
-				continue
+				return
 			}
 		}
 	}
@@ -274,9 +288,11 @@ func writer(esaclient *ESAClient, reqMsgChan <-chan RequestMessage, stopInformCh
 func connTracker(esaclient *ESAClient, stopChan <-chan bool, stopInformChan chan<- bool) {
 	// Wait here until Auth has been done
 	select {
-	case <-stopChan:
-		stopInformChan <- true
-		return
+	case _, ok := <-stopChan:
+		if !ok {
+			close(stopInformChan)
+			return
+		}
 	case <-esaclient.authSuccessChan:
 		// After Auth was successful then proceed
 	}
@@ -285,9 +301,11 @@ func connTracker(esaclient *ESAClient, stopChan <-chan bool, stopInformChan chan
 	// because calls to the Heartbeat function must still succeed
 	for {
 		select {
-		case <-stopChan:
-			stopInformChan <- true
-			return
+		case _, ok := <-stopChan:
+			if !ok {
+				close(stopInformChan)
+				return
+			}
 		case <-esaclient.heartbeatUpdateChan:
 			// Got update
 		case <-time.After(time.Duration(esaclient.heartbeatMultiplier*esaclient.heartbeatMS/100) * time.Millisecond):
@@ -297,8 +315,14 @@ func connTracker(esaclient *ESAClient, stopChan <-chan bool, stopInformChan chan
 			sm, err := esaclient.Heartbeat()
 			if err != nil {
 				log.Log(globals.Logger, log.ERROR, "error while doing conn tracking", fields)
+
+				// Inform the main program that connection is no longer good!
+
 			} else if sm.StatusCode != StatusCode_Success {
+				fields = log.Fields{"source": "connTracker", "StatusMessage": sm}
 				log.Log(globals.Logger, log.ERROR, "heartbeat was not successfull! show status message", fields)
+
+				// Inform the main program that connection is no longer good!
 			} else {
 				log.Log(globals.Logger, log.DEBUG, "got heartbeat response back, connection is good", fields)
 			}

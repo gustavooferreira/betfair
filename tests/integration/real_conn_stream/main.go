@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,12 +29,12 @@ func main() {
 	as := auth.NewAuthService(AppKey, username, password, certFile, keyFile, connectionTimeout)
 
 	fmt.Printf(InfoColor, "Logging in ...\n")
-	as.SessionToken = "doPJ9M5u0YtlRYHQ4WI5mE9sKNjo2D9LJiMDkSXeLy0="
-	// err = as.Login()
-	// if err != nil {
-	// 	fmt.Printf("Error while logging in: %s\n", err)
-	// 	return
-	// }
+	// as.SessionToken = "doPJ9M5u0YtlRYHQ4WI5mE9sKNjo2D9LJiMDkSXeLy0="
+	err = as.Login()
+	if err != nil {
+		fmt.Printf("Error while logging in: %s\n", err)
+		return
+	}
 
 	s = fmt.Sprintln("Session token: ", as.SessionToken)
 	fmt.Printf(InfoColor, s)
@@ -57,26 +58,22 @@ func main() {
 func streamLogic(as auth.AuthService) {
 	esaclient := exchangestream.NewESAClient(as.AppKey, as.SessionToken)
 
-	err := esaclient.TurnOnMetrics()
-	if err != nil {
-		s := fmt.Sprintf("ERROR: %+v\n", err)
-		fmt.Printf(InfoColor, s)
-	} else {
-		handler := esaclient.GetMetricsHandler()
-		http.Handle("/metrics", handler) //Metrics endpoint for scrapping
-
-		go func() {
-			err := http.ListenAndServe(":8080", nil)
-			if err != nil {
-				s := fmt.Sprintf("ERROR: %+v\n", err)
-				fmt.Printf(InfoColor, s)
-			}
-		}()
-	}
+	HandleMetrics(&esaclient)
 
 	s := fmt.Sprintln("Connecting to betfair server ...")
 	fmt.Printf(InfoColor, s)
-	err = esaclient.Connect(exchangestream.BetfairHostProd, exchangestream.BetfairPort, false)
+	connConfig := exchangestream.ConnectionConfig{
+		ServerHost:         exchangestream.BetfairHostProd,
+		ServerPort:         exchangestream.BetfairPort,
+		InsecureSkipVerify: false,
+		ConnectionTimeout:  3000,
+		Retries:            -1,
+		MaximumBackoff:     10,
+		Reconnect:          true,
+	}
+	ctx, _ := context.WithCancel(context.Background())
+
+	err := esaclient.Connect(ctx, connConfig)
 	if err != nil {
 		var e exchangestream.ConnectionError
 		if errors.As(err, &e) {
@@ -88,7 +85,6 @@ func streamLogic(as auth.AuthService) {
 			s = fmt.Sprintln(err.Error())
 			fmt.Printf(InfoColor, s)
 		}
-
 		return
 	}
 
@@ -150,6 +146,27 @@ func streamLogic(as auth.AuthService) {
 	if err != nil {
 		s = fmt.Sprintf("ERROR: %+v\n", err)
 		fmt.Printf(InfoColor, s)
+	}
+}
+
+func HandleMetrics(esaclient *exchangestream.ESAClient) {
+
+	// Handle METRICS
+	err := esaclient.TurnOnMetrics()
+	if err != nil {
+		s := fmt.Sprintf("ERROR: %+v\n", err)
+		fmt.Printf(InfoColor, s)
+	} else {
+		handler := esaclient.GetMetricsHandler()
+		http.Handle("/metrics", handler) //Metrics endpoint for scrapping
+
+		go func() {
+			err := http.ListenAndServe(":8080", nil)
+			if err != nil {
+				s := fmt.Sprintf("ERROR: %+v\n", err)
+				fmt.Printf(InfoColor, s)
+			}
+		}()
 	}
 }
 

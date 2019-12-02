@@ -39,13 +39,13 @@ func (rm RequestMessage) MarshalJSON() ([]byte, error) {
 		return json.Marshal(&struct {
 			Op                  string           `json:"op"`
 			ID                  *uint32          `json:"id,omitempty"`
-			SegmentationEnabled *bool            `json:"segmentationEnabled,omitempty"`
+			SegmentationEnabled bool             `json:"segmentationEnabled"`
 			Clk                 string           `json:"clk,omitempty"`
 			HeartbeatMs         uint             `json:"heartbeatMs,omitempty"`
 			InitialClk          string           `json:"initialClk,omitempty"`
-			MarketFilter        MarketFilter     `json:"marketFilter,omitempty"`
+			MarketFilter        MarketFilter     `json:"marketFilter"`
 			ConflateMs          uint             `json:"conflateMs,omitempty"`
-			MarketDataFilter    MarketDataFilter `json:"marketDataFilter,omitempty"`
+			MarketDataFilter    MarketDataFilter `json:"marketDataFilter"`
 		}{
 			Op:                  rm.Op,
 			ID:                  rm.ID,

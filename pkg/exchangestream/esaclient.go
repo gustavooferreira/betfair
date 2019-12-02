@@ -17,8 +17,41 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// timeout of 0.5 seconds
-const timeoutDuration = 500 * time.Millisecond
+type WorkUnit struct {
+	req      RequestMessage
+	respChan chan ResponseMessage
+}
+
+type MarketChangeM struct {
+	ID *uint32
+	MarketChangeMessage
+}
+
+type OrderChangeM struct {
+	ID *uint32
+	OrderChangeMessage
+}
+
+type ConnectionConfig struct {
+	// ServerHost is the betfair FQDN/IP
+	ServerHost string
+	// ServerPort is the betfair server port (443)
+	ServerPort uint
+	// InsecureSkipVerify sets on/off the TLS cert validation
+	InsecureSkipVerify bool
+
+	// ConnectionTimeout specifies the wait time (in milliseconds) before timing out the connection
+	ConnectionTimeout int
+	// Retries specifies the number of retries allowed.
+	// -1 means infinite number of retries
+	// 0 means to never retry
+	// Any other number greater or equal to 1 means retry X amount of times
+	Retries int
+	// MaximunBackoff specifies the maximun waiting time between actions (in seconds)
+	MaximumBackoff uint
+	// Reconnect specifies whether to retry connecting to server upon undesired disconnection
+	Reconnect bool
+}
 
 // ESAClient is the client that interacts with betfair Exchange Stream API
 // It's thread safe!
@@ -31,30 +64,32 @@ type ESAClient struct {
 	conn *tls.Conn
 
 	// Atomic
-	msgID        uint32
+	msgID uint32
+	// Connection config
+	connConfig atomic.Value
+	// ConnectionID - this will be populated after a connection has been established and the first message has been received
 	connectionID atomic.Value
-	// Wait time (in seconds) before timeout
-	connWaitTime uint32
 	// When sending or receiving messages through channels, how long to wait before giving up (in seconds)
 	chanWaitTime uint32
-	// Reader buffer
+	// Reader buffer size
 	readerBufferSize uint32
-	// Metrics enable (0 - False | 1 - True)
+	// Metrics enable flag (0 - False | 1 - True)
 	metricsFlag uint32
 	// heartbeat MS interval (bound between 500ms and 5000ms)
 	heartbeatMS uint32
 	// wait x times the heartbeatMS before sending Heartbeat message (in %) e.g.: 100% means wait for the whole period
 	heartbeatMultiplier uint32
 
-	// TODO: These channels need to be initialized when the object is created and never changed again!
-	// Never ever ever close these channels!!!!
+	// These channels need to be initialized when the object is created and never changed again!
+	// These channels never get closed
+
+	// Gets messages to be sent to the betfair server
 	reqMsgChan chan WorkUnit
-
 	// Life cycle management
-	// Internal channels
-	stopChan       chan bool
+	// Internal control channels (signal to controller to stop)
+	stopChan chan bool
+	// Inform back that the controller and its goroutines have successfully shutdown
 	stopInformChan chan bool
-
 	// Inform connection tracker that a new update got in
 	heartbeatUpdateChan chan uint32
 	// Signal auth success
@@ -69,21 +104,32 @@ type ESAClient struct {
 	readCounter prometheus.Counter
 }
 
+// NewESAClient creates a new esaclient object.
 func NewESAClient(appKey string, sessionToken string) ESAClient {
 	client := ESAClient{appKey: appKey, sessionToken: sessionToken}
 	// Set some defaults
-	client.connWaitTime = 3
 	client.chanWaitTime = 3
 	client.readerBufferSize = 8 * 1024 * 1024
 	client.heartbeatMS = 1000
 	client.heartbeatMultiplier = 150
 
 	client.connectionID.Store("")
+	client.connConfig.Store(ConnectionConfig{})
+
+	// Init channels
+	client.reqMsgChan = make(chan WorkUnit, 1000)
+	client.stopChan = make(chan bool, 1)
+	client.stopInformChan = make(chan bool, 1)
+	client.heartbeatUpdateChan = make(chan uint32, 10)
+	client.authSuccessChan = make(chan bool, 10)
+	client.MCMChan = make(chan MarketChangeM, 1000)
+	client.OCMChan = make(chan OrderChangeM, 1000)
+
 	return client
 }
 
-func (esaclient *ESAClient) ChangeSettings(connWaitTime uint32, chanWaitTime uint32, heartbeatMS uint32, heartbeatMultiplier uint32) error {
-	atomic.StoreUint32(&esaclient.connWaitTime, connWaitTime)
+// ChangeSettings changes some setting on the esaclient.
+func (esaclient *ESAClient) ChangeSettings(chanWaitTime uint32, heartbeatMS uint32, heartbeatMultiplier uint32) error {
 	atomic.StoreUint32(&esaclient.chanWaitTime, chanWaitTime)
 
 	if heartbeatMS < 500 || heartbeatMS > 5000 {
@@ -99,61 +145,69 @@ func (esaclient *ESAClient) ChangeSettings(connWaitTime uint32, chanWaitTime uin
 	return nil
 }
 
+// GetSessionInfo returns the application key, the session token, the connection ID and the current message ID counter.
 func (esaclient *ESAClient) GetSessionInfo() (string, string, string, uint32) {
 	connID := esaclient.connectionID.Load().(string)
 
 	return esaclient.appKey, esaclient.sessionToken, connID, esaclient.msgID
 }
 
-type Config struct {
-	// Retries specifies the number of retries allowed.
-	// -1 means infinite number of retries
-	// 0 means to never retry
-	// Any other number greater or equal to 1 means retry X amount of times
-	Retries int
-	// MaximunBackoff specifies the maximun waiting time between actions (in seconds)
-	MaximumBackoff uint
-	// Reconnect specifies whether to retry connecting to server upon undesired disconnection
-	Reconnect bool
-}
-
-// sleepCanBreak is an helper function that sleeps for a specified duration and can be stopped via the context passed in.
-func sleepCanBreak(ctx context.Context, sleep time.Duration) (isBreak bool) {
-	select {
-	case <-ctx.Done():
-		isBreak = true
-	case <-time.After(sleep):
-		isBreak = false
-	}
-	return
-}
-
-// Connect connects to the server.
-// When connected, spawn 3 goroutines: controller, reader and writer
-func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecureSkipVerify bool) (err error) {
+// Connect connects to the betfair server.
+// When connected, spawn 4 goroutines: controller, reader, writer and connection tracker.
+func (esaclient *ESAClient) Connect(ctx context.Context, connConfig ConnectionConfig) error {
 
 	// If connectionID != "" then there is a connection already!
 	if esaclient.connectionID.Load().(string) != "" {
 		return ConnectionError{Msg: "connection already established"}
 	}
 
-	config := tls.Config{InsecureSkipVerify: insecureSkipVerify}
-	d := net.Dialer{Timeout: time.Duration(esaclient.connWaitTime) * time.Second}
-	esaclient.conn, err = tls.DialWithDialer(&d, "tcp", serverHost+":"+strconv.Itoa(int(serverPort)), &config)
+	esaclient.connConfig.Store(connConfig)
+	return esaclient.connectionHelper(ctx)
+}
+
+// connectionHelper is an helper function used to connect to betfair server
+// In case we pass -1 as the retry counter (which means, retry forever) then this function will never return an error
+func (esaclient *ESAClient) connectionHelper(ctx context.Context) error {
+	connConfig := esaclient.connConfig.Load().(ConnectionConfig)
+
+	config := tls.Config{InsecureSkipVerify: connConfig.InsecureSkipVerify}
+	d := net.Dialer{Timeout: time.Duration(connConfig.ConnectionTimeout) * time.Millisecond}
+	addr := connConfig.ServerHost + ":" + strconv.Itoa(int(connConfig.ServerPort))
+
+	rpe := NewPolicyExponential(connConfig.Retries, connConfig.MaximumBackoff, 0)
+
+	var cancelled bool
+	var wboErr error
+
+	// Retry connection according to retry policy
+	for {
+		log.Log(globals.Logger, log.INFO, "trying to connect to server", nil)
+		err := esaclient.connRetry(ctx, d, addr, &config)
+
+		if err != nil {
+			log.Log(globals.Logger, log.ERROR, "failed connecting to server", log.Fields{"attempts": rpe.RetryCount() + 1})
+			cancelled, wboErr = rpe.WaitBackOff(ctx)
+			if wboErr != nil {
+				return fmt.Errorf("failed to connect to server, not trying anymore: %w", err)
+			} else if cancelled {
+				return fmt.Errorf("request cancelled")
+			}
+		} else {
+			log.Log(globals.Logger, log.INFO, "successfully connected to server", nil)
+			return nil
+		}
+	}
+}
+
+func (esaclient *ESAClient) connRetry(ctx context.Context, d net.Dialer, addr string, config *tls.Config) error {
+	var err error
+	// TODO: Use context if possible
+	esaclient.conn, err = tls.DialWithDialer(&d, "tcp", addr, config)
 	if err != nil {
 		return ConnectionFailedError{Msg: "connecting to betfair failed", Err: err}
 	}
 
 	log.Log(globals.Logger, log.INFO, "connection established with server", nil)
-
-	// Init channels
-	esaclient.heartbeatUpdateChan = make(chan uint32, 10)
-	esaclient.authSuccessChan = make(chan bool, 10)
-	esaclient.stopChan = make(chan bool)
-	esaclient.stopInformChan = make(chan bool)
-	esaclient.reqMsgChan = make(chan WorkUnit, 1000)
-	esaclient.MCMChan = make(chan MarketChangeM, 1000)
-	esaclient.OCMChan = make(chan OrderChangeM, 1000)
 
 	connMsgChan := make(chan ConnectionMessage)
 
@@ -161,12 +215,14 @@ func (esaclient *ESAClient) Connect(serverHost string, serverPort uint, insecure
 	go esaclient.controller(connMsgChan)
 
 	// Select connMsgChan and Timeout of X seconds
-	// If timeout, bring all 3 goroutines down: controller, reader, writer
+	// If timeout, bring all 4 goroutines down: controller, reader, writer, connection tracker
 	select {
+	case <-ctx.Done():
+		err = esaclient.disconnectHelper()
+		return ConnectionFailedError{Msg: "context cancelled while waiting for connection message from betfair", Err: err}
 	case connMsg := <-connMsgChan:
 		esaclient.connectionID.Store(connMsg.ConnectionID)
 		return nil
-
 	case <-time.After(time.Duration(esaclient.chanWaitTime) * time.Second):
 		// call timed out
 		err = esaclient.disconnectHelper()
@@ -185,7 +241,7 @@ func (esaclient *ESAClient) Disconnect() error {
 }
 
 func (esaclient *ESAClient) disconnectHelper() error {
-	close(esaclient.stopChan)
+	esaclient.stopChan <- true
 
 	// Wait for the stop inform to arrive or after X seconds kill the connection anyway
 	select {
@@ -196,12 +252,9 @@ func (esaclient *ESAClient) disconnectHelper() error {
 		log.Log(globals.Logger, log.ERROR, "timeout while waiting for goroutines to shutdown", nil)
 	}
 
+	esaclient.connConfig.Store(ConnectionConfig{})
 	esaclient.connectionID.Store("")
 	atomic.StoreUint32(&esaclient.msgID, 0)
-
-	// Close stream channels
-	close(esaclient.MCMChan)
-	close(esaclient.OCMChan)
 
 	return esaclient.conn.Close()
 }
@@ -228,6 +281,7 @@ func (esaclient *ESAClient) reader(respMsgChan chan<- ResponseMessage, stopChan 
 	reader(esaclient, respMsgChan, stopChan)
 }
 
+// writer is responsible for sending messages to the betfair server
 func (esaclient *ESAClient) writer(reqMsgChan <-chan RequestMessage, stopInformChan chan<- bool) {
 	log.Log(globals.Logger, log.INFO, "starting writer goroutine", nil)
 	defer log.Log(globals.Logger, log.INFO, "exiting writer goroutine", nil)
@@ -299,20 +353,9 @@ func (esaclient *ESAClient) getNewID() uint32 {
 	return atomic.AddUint32(&esaclient.msgID, 1)
 }
 
-type WorkUnit struct {
-	req      RequestMessage
-	respChan chan ResponseMessage
-}
-
-type MarketChangeM struct {
-	ID *uint32
-	MarketChangeMessage
-}
-
-type OrderChangeM struct {
-	ID *uint32
-	OrderChangeMessage
-}
+// ========#
+// Metrics #
+// ========#
 
 func (esaclient *ESAClient) TurnOnMetrics() error {
 	esaclient.readCounter = prometheus.NewCounter(prometheus.CounterOpts{

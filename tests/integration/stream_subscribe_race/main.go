@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -47,7 +48,18 @@ func streamStuff(as auth.AuthService) {
 	fmt.Print(esaclient.GetSessionInfo())
 	fmt.Println("|")
 
-	err := esaclient.Connect("127.0.0.1", 8080, true)
+	connConfig := exchangestream.ConnectionConfig{
+		ServerHost:         "127.0.0.1",
+		ServerPort:         8080,
+		InsecureSkipVerify: true,
+		ConnectionTimeout:  3000,
+		Retries:            -1,
+		MaximumBackoff:     10,
+		Reconnect:          true,
+	}
+	ctx, _ := context.WithCancel(context.Background())
+
+	err := esaclient.Connect(ctx, connConfig)
 	if err != nil {
 		var e exchangestream.ConnectionError
 		if errors.As(err, &e) {
@@ -113,6 +125,13 @@ func streamStuff(as auth.AuthService) {
 
 type MiniLogger struct {
 	Level log.LogLevel
+}
+
+func (ml MiniLogger) Trace(msg string, fields log.Fields) {
+	if ml.Level <= log.TRACE {
+		timestamp := time.Now().UTC()
+		fmt.Print(generalLogging(msg, "TRACE", timestamp, fields))
+	}
 }
 
 func (ml MiniLogger) Debug(msg string, fields log.Fields) {
