@@ -22,16 +22,6 @@ type WorkUnit struct {
 	respChan chan ResponseMessage
 }
 
-type MarketChangeM struct {
-	ID *uint32
-	MarketChangeMessage
-}
-
-type OrderChangeM struct {
-	ID *uint32
-	OrderChangeMessage
-}
-
 type ConnectionConfig struct {
 	// ServerHost is the betfair FQDN/IP
 	ServerHost string

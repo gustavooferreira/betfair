@@ -1,10 +1,10 @@
-package cache
+package market
 
 type MarketCache struct {
 	Clk          string
 	InitialClk   string
 	PublishTime  *int
-	MarketId     string
+	MarketID     string
 	TradedVolume *float64
 	// MarketDefinition *MarketDefinition
 	Runners map[int64]RunnerCache // key is the RunnerID
@@ -21,7 +21,7 @@ func (mc *MarketCache) Update() {
 }
 
 type RunnerCache struct {
-	SelectionId                int64
+	SelectionID                int64
 	LastTradedPrice            *float64
 	TradedVolume               *float64
 	StartingPriceNear          *float64
