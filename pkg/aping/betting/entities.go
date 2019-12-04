@@ -5,22 +5,22 @@ import (
 )
 
 type MarketFilter struct {
-	TextQuery          string    `json:"textQuery,omitempty"`
-	ExchangeIds        []string  `json:"exchangeIds,omitempty"`
-	EventTypeIds       []string  `json:"eventTypeIds,omitempty"`
-	EventIds           []string  `json:"eventIds,omitempty"`
-	CompetitionIds     []string  `json:"competitionIds,omitempty"`
-	MarketIds          []string  `json:"marketIds,omitempty"`
-	Venues             []string  `json:"venues,omitempty"`
-	BSPOnly            *bool     `json:"bspOnly,omitempty"`
-	TurnInPlayEnabled  *bool     `json:"turnInPlayEnabled,omitempty"`
-	InPlayOnly         *bool     `json:"inPlayOnly,omitempty"`
-	MarketBettingTypes []string  `json:"marketBettingTypes,omitempty"`
-	MarketCountries    []string  `json:"marketCountries,omitempty"`
-	MarketTypeCodes    []string  `json:"marketTypeCodes,omitempty"`
-	MarketStartTime    TimeRange `json:"marketStartTime,omitempty"`
-	WithOrders         []string  `json:"withOrders,omitempty"`
-	RaceTypes          []string  `json:"raceTypes,omitempty"`
+	TextQuery          string              `json:"textQuery,omitempty"`
+	ExchangeIDs        []string            `json:"exchangeIds,omitempty"` //NOTE: Deprecated
+	EventTypeIDs       []string            `json:"eventTypeIds,omitempty"`
+	EventIds           []string            `json:"eventIds,omitempty"`
+	CompetitionISs     []string            `json:"competitionIds,omitempty"`
+	MarketIds          []string            `json:"marketIds,omitempty"`
+	Venues             []string            `json:"venues,omitempty"`
+	BSPOnly            *bool               `json:"bspOnly,omitempty"`
+	TurnInPlayEnabled  *bool               `json:"turnInPlayEnabled,omitempty"`
+	InPlayOnly         *bool               `json:"inPlayOnly,omitempty"`
+	MarketBettingTypes []MarketBettingType `json:"marketBettingTypes,omitempty"`
+	MarketCountries    []string            `json:"marketCountries,omitempty"`
+	MarketTypeCodes    []string            `json:"marketTypeCodes,omitempty"`
+	MarketStartTime    *TimeRange          `json:"marketStartTime,omitempty"`
+	WithOrders         []OrderStatus       `json:"withOrders,omitempty"`
+	RaceTypes          []string            `json:"raceTypes,omitempty"`
 }
 
 type TimeRange struct {
@@ -29,17 +29,23 @@ type TimeRange struct {
 }
 
 type MarketCatalogue struct {
-	MarketID        string          `json:"marketId"`
-	MarketName      string          `json:"marketName"`
-	MarketStartTime *time.Time      `json:"marketStartTime"`
-	Runners         []RunnerCatalog `json:"runners"`
+	MarketID        string     `json:"marketId"`
+	MarketName      string     `json:"marketName"`
+	MarketStartTime *time.Time `json:"marketStartTime"`
+	// Description     string          `json:"description"`
+	TotalMatched float64         `json:"totalMatched"`
+	Runners      []RunnerCatalog `json:"runners"`
+	// EventType    string          `json:"eventType"`
+	// Competition  string          `json:"competition"`
+	// Event        string          `json:"event"`
 }
 
 type RunnerCatalog struct {
-	SelectionID  uint    `json:"selectionId"`
-	RunnerName   string  `json:"runnerName"`
-	Handicap     float64 `json:"handicap"`
-	SortPriority uint    `json:"sortPriority"`
+	SelectionID  uint              `json:"selectionId"`
+	RunnerName   string            `json:"runnerName"`
+	Handicap     float64           `json:"handicap"`
+	SortPriority uint              `json:"sortPriority"`
+	Metadata     map[string]string `json:"metadata"`
 }
 
 type BetfairAPIError struct {
@@ -65,34 +71,73 @@ type MarketBook struct {
 }
 
 type Runner struct {
-	SelectionID uint `json:"selectionId"`
-	// Change this to an ENUM
-	Status          string  `json:"status"`
-	LastPriceTraded float64 `json:lastPriceTraded`
+	SelectionID     uint         `json:"selectionId"`
+	Status          RunnerStatus `json:"status"`
+	LastPriceTraded float64      `json:lastPriceTraded`
 }
 
 type PlaceInstruction struct {
-	OrderType   string     `json:"orderType"`
-	SelectionID string     `json:"selectionId"`
+	OrderType   OrderType  `json:"orderType"`
+	SelectionID Side       `json:"selectionId"`
 	Side        string     `json:"side"`
 	LimitOrder  LimitOrder `json:"limitOrder"`
 }
 
 type LimitOrder struct {
-	Size            string `json:"size"`
-	Price           string `json:"price"`
-	PersistenceType string `json:"persistenceType"`
+	Size            string          `json:"size"`
+	Price           string          `json:"price"`
+	PersistenceType PersistenceType `json:"persistenceType"`
 }
 
 type PlaceExecutionReport struct {
+	Status             ExecutionReportStatus    `json:"status"`
+	ErrorCode          ExecutionReportErrorCode `json:"errorCode"`
 	MarketID           string                   `json:"marketId"`
-	Status             string                   `json:"status"`
 	InstructionReports []PlaceInstructionReport `json:"instructionReports"`
 }
 
 type PlaceInstructionReport struct {
-	Status              string  `json:"status"`
-	AveragePriceMatched float64 `json:"averagePriceMatched"`
-	SizeMatched         float64 `json:"sizeMatched"`
-	OrderStatus         string  `json:"orderStatus"`
+	Status              InstructionReportStatus     `json:"status"`
+	ErrorCode           *InstructionReportErrorCode `json:"errorCode"`
+	OrderStatus         OrderStatus                 `json:"orderStatus"`
+	Instruction         PlaceInstruction            `json:"instruction"`
+	BetID               *string                     `json:"betId"`
+	AveragePriceMatched *float64                    `json:"averagePriceMatched"`
+	SizeMatched         *float64                    `json:"sizeMatched"`
+}
+
+type ReplaceInstruction struct {
+	BetID    string  `json:"betId"`
+	NewPrice float64 `json:"newPrice"`
+}
+
+type ReplaceExecutionReport struct {
+	Status             ExecutionReportStatus      `json:"status"`
+	ErrorCode          ExecutionReportErrorCode   `json:"errorCode"`
+	MarketID           string                     `json:"marketId"`
+	InstructionReports []ReplaceInstructionReport `json:"instructionReports"`
+}
+
+type ReplaceInstructionReport struct {
+	Status    InstructionReportStatus     `json:"status"`
+	ErrorCode *InstructionReportErrorCode `json:"errorCode"`
+}
+
+type CancelInstruction struct {
+	BetID         string   `json:"betId"`
+	SizeReduction *float64 `json:"sizeReduction"`
+}
+
+type CancelExecutionReport struct {
+	Status             ExecutionReportStatus     `json:"status"`
+	ErrorCode          ExecutionReportErrorCode  `json:"errorCode"`
+	MarketID           string                    `json:"marketId"`
+	InstructionReports []CancelInstructionReport `json:"instructionReports"`
+}
+
+type CancelInstructionReport struct {
+	Status        InstructionReportStatus     `json:"status"`
+	ErrorCode     *InstructionReportErrorCode `json:"errorCode"`
+	Instruction   CancelInstruction           `json:"instruction"`
+	SizeCancelled float64                     `json:"sizeCancelled"`
 }

@@ -18,12 +18,12 @@ type StatusMessage struct {
 }
 
 type OrderSubscriptionMessage struct {
-	SegmentationEnabled bool         `json:"segmentationEnabled"`
-	OrderFilter         *OrderFilter `json:"orderFilter,omitempty"`
-	Clk                 string       `json:"clk,omitempty"`
-	HeartbeatMs         uint         `json:"heartbeatMs,omitempty"`
-	InitialClk          string       `json:"initialClk,omitempty"`
-	ConflateMs          uint         `json:"conflateMs"`
+	SegmentationEnabled bool        `json:"segmentationEnabled"`
+	OrderFilter         OrderFilter `json:"orderFilter"`
+	Clk                 string      `json:"clk,omitempty"`
+	HeartbeatMs         uint        `json:"heartbeatMs,omitempty"`
+	InitialClk          string      `json:"initialClk,omitempty"`
+	ConflateMs          uint        `json:"conflateMs"`
 }
 
 type OrderFilter struct {

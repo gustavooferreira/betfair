@@ -40,13 +40,14 @@ func main() {
 	to := time.Date(eventYear, eventMonth, eventDay, 23, 55, 0, 0, time.UTC)
 	tr := betting.TimeRange{From: &from, To: &to}
 
-	filter := betting.MarketFilter{EventTypeIds: []string{"7"}, MarketCountries: []string{"GB", "IE"},
-		MarketTypeCodes: []string{"WIN"}, MarketStartTime: tr}
+	filter := betting.MarketFilter{EventTypeIDs: []string{"7"}, MarketCountries: []string{"GB", "IE"},
+		MarketTypeCodes: []string{"WIN"}, MarketStartTime: &tr}
 
 	marketProjection := []betting.MarketProjection{betting.MarketProjection_MarketStartTime}
 	marketSort := betting.MarketSort_FirstToStart
 
-	marketCatalogue, err := bettingAPI.ListMarketCatalogue(filter, &marketProjection, &marketSort, 100, nil)
+	clmc := betting.ContainerListMarketCatalogue{Filter: filter, MarketProjection: marketProjection, Sort: &marketSort, MaxResults: 100}
+	marketCatalogue, err := bettingAPI.ListMarketCatalogue(clmc)
 
 	if errB, ok := err.(*betting.BettingAPIError); ok {
 		// Just as an example:
