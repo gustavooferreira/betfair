@@ -100,10 +100,23 @@ type PlaceInstructionReport struct {
 	Status              InstructionReportStatus     `json:"status"`
 	ErrorCode           *InstructionReportErrorCode `json:"errorCode"`
 	OrderStatus         OrderStatus                 `json:"orderStatus"`
-	Instruction         PlaceInstruction            `json:"instruction"`
+	Instruction         PlaceInstructionR           `json:"instruction"`
 	BetID               *string                     `json:"betId"`
 	AveragePriceMatched *float64                    `json:"averagePriceMatched"`
 	SizeMatched         *float64                    `json:"sizeMatched"`
+}
+
+type PlaceInstructionR struct {
+	OrderType   OrderType   `json:"orderType"`
+	SelectionID uint        `json:"selectionId"`
+	Side        Side        `json:"side"`
+	LimitOrder  LimitOrderR `json:"limitOrder"`
+}
+
+type LimitOrderR struct {
+	Size            float64         `json:"size"`
+	Price           float64         `json:"price"`
+	PersistenceType PersistenceType `json:"persistenceType,omitempty"`
 }
 
 type ReplaceInstruction struct {
