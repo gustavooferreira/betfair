@@ -86,7 +86,7 @@ type PlaceInstruction struct {
 type LimitOrder struct {
 	Size            float64         `json:"size"`
 	Price           float64         `json:"price"`
-	PersistenceType PersistenceType `json:"persistenceType"`
+	PersistenceType PersistenceType `json:"persistenceType,omitempty"`
 }
 
 type PlaceExecutionReport struct {
