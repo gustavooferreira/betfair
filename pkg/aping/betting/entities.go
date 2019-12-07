@@ -66,8 +66,10 @@ type APINGException struct {
 }
 
 type MarketBook struct {
-	MarketID string   `json:"marketId"`
-	Runners  []Runner `json:"runners"`
+	MarketID string       `json:"marketId"`
+	Status   MarketStatus `json:"status"`
+	InPlay   bool         `json:"inplay"`
+	Runners  []Runner     `json:"runners"`
 }
 
 type Runner struct {
