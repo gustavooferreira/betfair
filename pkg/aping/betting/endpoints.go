@@ -76,7 +76,7 @@ func (b BettingAPI) ListMarketBook(clmb ContainerListMarketBook) ([]MarketBook, 
 }
 
 // PlaceOrders puts back/lay bets on the market.
-func (b BettingAPI) PlaceOrders(cpo ContainerPlaceOrder) (PlaceExecutionReport, error) {
+func (b BettingAPI) PlaceOrders(cpo ContainerPlaceOrders) (PlaceExecutionReport, error) {
 	per := PlaceExecutionReport{}
 
 	cpoBytes, err := json.Marshal(cpo)
@@ -99,7 +99,7 @@ func (b BettingAPI) PlaceOrders(cpo ContainerPlaceOrder) (PlaceExecutionReport, 
 }
 
 // ReplaceOrders cancels bets followed by putting new bets on the market.
-func (b BettingAPI) ReplaceOrders(cro ContainerReplaceOrder) (ReplaceExecutionReport, error) {
+func (b BettingAPI) ReplaceOrders(cro ContainerReplaceOrders) (ReplaceExecutionReport, error) {
 	rer := ReplaceExecutionReport{}
 
 	croBytes, err := json.Marshal(cro)
@@ -122,7 +122,7 @@ func (b BettingAPI) ReplaceOrders(cro ContainerReplaceOrder) (ReplaceExecutionRe
 }
 
 // CancelOrders cancels bets on the market.
-func (b BettingAPI) CancelOrders(cco ContainerCancelOrder) (CancelExecutionReport, error) {
+func (b BettingAPI) CancelOrders(cco ContainerCancelOrders) (CancelExecutionReport, error) {
 	cer := CancelExecutionReport{}
 
 	ccoBytes, err := json.Marshal(cco)

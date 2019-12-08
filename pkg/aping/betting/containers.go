@@ -12,17 +12,19 @@ type ContainerListMarketBook struct {
 	MarketIDs []string `json:"marketIds"`
 }
 
-type ContainerPlaceOrder struct {
+type ContainerPlaceOrders struct {
 	MarketID     string             `json:"marketId"`
 	Instructions []PlaceInstruction `json:"instructions"`
+	// CustomerStrategyRef - Max of 15 characters
+	CustomerStrategyRef string `json:"customerStrategyRef"`
 }
 
-type ContainerReplaceOrder struct {
+type ContainerReplaceOrders struct {
 	MarketID     string               `json:"marketId"`
 	Instructions []ReplaceInstruction `json:"instructions"`
 }
 
-type ContainerCancelOrder struct {
+type ContainerCancelOrders struct {
 	MarketID     string              `json:"marketId"`
 	Instructions []CancelInstruction `json:"instructions"`
 }
