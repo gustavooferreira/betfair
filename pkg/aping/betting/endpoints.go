@@ -18,6 +18,7 @@ const (
 	placeOrdersEndpoint         = ukBettingEndpoint + "placeOrders/"
 	replaceOrdersEndpoint       = ukBettingEndpoint + "replaceOrders/"
 	cancelOrdersEndpoint        = ukBettingEndpoint + "cancelOrders/"
+	listClearedOrdersEndpoint   = ukBettingEndpoint + "listClearedOrders/"
 )
 
 type BettingAPI struct {
@@ -156,7 +157,7 @@ func (b BettingAPI) ListClearedOrders(clco ContainerListClearedOrders) (ClearedO
 	}
 
 	payload := bytes.NewBuffer(clcoBytes)
-	response, err := b.sendRequest(cancelOrdersEndpoint, payload)
+	response, err := b.sendRequest(listClearedOrdersEndpoint, payload)
 	if err != nil {
 		return cosr, err
 	}
