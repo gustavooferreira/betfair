@@ -150,12 +150,12 @@ func (b BettingAPI) CancelOrders(cco ContainerCancelOrders) (CancelExecutionRepo
 func (b BettingAPI) ListClearedOrders(clco ContainerListClearedOrders) (ClearedOrderSummaryReport, error) {
 	cosr := ClearedOrderSummaryReport{}
 
-	cosrBytes, err := json.Marshal(cosr)
+	clcoBytes, err := json.Marshal(clco)
 	if err != nil {
 		return cosr, fmt.Errorf("error while marshalling request %w", err)
 	}
 
-	payload := bytes.NewBuffer(cosrBytes)
+	payload := bytes.NewBuffer(clcoBytes)
 	response, err := b.sendRequest(cancelOrdersEndpoint, payload)
 	if err != nil {
 		return cosr, err
