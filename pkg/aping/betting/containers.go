@@ -31,6 +31,6 @@ type ContainerCancelOrders struct {
 
 type ContainerListClearedOrders struct {
 	BetStatus            BetStatus  `json:"betStatus"`
-	CustomerStrategyRefs string     `json:"customerStrategyRefs,omitempty"`
+	CustomerStrategyRefs []string   `json:"customerStrategyRefs,omitempty"`
 	SettleDateRange      *TimeRange `json:"settleDateRange,omitempty"`
 }
