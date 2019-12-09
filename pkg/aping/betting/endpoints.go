@@ -144,6 +144,31 @@ func (b BettingAPI) CancelOrders(cco ContainerCancelOrders) (CancelExecutionRepo
 	return cer, nil
 }
 
+// ListClearedOrders returns a list of settled bets based on the bet status, ordered by settled date.
+// To retrieve more than 1000 records, you need to make use of the fromRecord and recordCount parameters.
+// By default the service will return all available data for the last 90 days.
+func (b BettingAPI) ListClearedOrders(clco ContainerListClearedOrders) (ClearedOrderSummaryReport, error) {
+	cosr := ClearedOrderSummaryReport{}
+
+	cosrBytes, err := json.Marshal(cosr)
+	if err != nil {
+		return cosr, fmt.Errorf("error while marshalling request %w", err)
+	}
+
+	payload := bytes.NewBuffer(cosrBytes)
+	response, err := b.sendRequest(cancelOrdersEndpoint, payload)
+	if err != nil {
+		return cosr, err
+	}
+
+	err = json.Unmarshal(response, &cosr)
+	if err != nil {
+		return cosr, fmt.Errorf("error while unmarshalling response %w", err)
+	}
+
+	return cosr, nil
+}
+
 func (b BettingAPI) sendRequest(url string, body io.Reader) ([]byte, error) {
 
 	respBody, err := utils.SendRequest(b.HttpClient, "POST", b.AppKey, b.SessionToken, url, body)

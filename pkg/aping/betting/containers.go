@@ -28,3 +28,9 @@ type ContainerCancelOrders struct {
 	MarketID     string              `json:"marketId"`
 	Instructions []CancelInstruction `json:"instructions"`
 }
+
+type ContainerListClearedOrders struct {
+	BetStatus            BetStatus `json:"betStatus"`
+	CustomerStrategyRefs string    `json:"customerStrategyRefs,omitempty"`
+	SettleDateRange      TimeRange `json:"settleDateRange"`
+}

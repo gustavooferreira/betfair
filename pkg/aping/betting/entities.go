@@ -156,3 +156,19 @@ type CancelInstructionReport struct {
 	Instruction   CancelInstruction           `json:"instruction"`
 	SizeCancelled float64                     `json:"sizeCancelled"`
 }
+
+type ClearedOrderSummaryReport struct {
+	ClearedOrders []ClearedOrderSummary `json:"clearedOrders"`
+	MoreAvailable bool                  `json:"moreAvailable"`
+}
+
+type ClearedOrderSummary struct {
+	MarketID            string  `json:"marketId"`
+	SelectionID         uint    `json:"SelectionId"`
+	Side                Side    `json:"side"`
+	BetOutcome          string  `json:"betOutcome"`
+	Commission          float64 `json:"commission"`
+	PriceMatched        float64 `json:"priceMatched"`
+	Profit              float64 `json:"profit"`
+	CustomerStrategyRef string  `json:"customerStrategyRef"`
+}
