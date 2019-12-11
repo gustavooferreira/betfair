@@ -172,3 +172,13 @@ type ClearedOrderSummary struct {
 	Profit              float64 `json:"profit"`
 	CustomerStrategyRef string  `json:"customerStrategyRef"`
 }
+
+type CurrentOrderSummaryReport struct {
+	CurrentOrders []CurrentOrderSummary `json:"currentOrders"`
+	MoreAvailable bool                  `json:"moreAvailable"`
+}
+
+type CurrentOrderSummary struct {
+	BetID  string      `json:"betId"`
+	Status OrderStatus `json:"status"`
+}

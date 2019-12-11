@@ -35,3 +35,7 @@ type ContainerListClearedOrders struct {
 	CustomerStrategyRefs []string   `json:"customerStrategyRefs,omitempty"`
 	SettleDateRange      *TimeRange `json:"settleDateRange,omitempty"`
 }
+
+type ContainerListCurrentOrders struct {
+	BetIDs []string `json:"betIds,omitempty"`
+}

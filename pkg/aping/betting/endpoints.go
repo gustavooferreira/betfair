@@ -19,6 +19,7 @@ const (
 	replaceOrdersEndpoint       = ukBettingEndpoint + "replaceOrders/"
 	cancelOrdersEndpoint        = ukBettingEndpoint + "cancelOrders/"
 	listClearedOrdersEndpoint   = ukBettingEndpoint + "listClearedOrders/"
+	listCurrentOrdersEndpoint   = ukBettingEndpoint + "listCurrentOrders/"
 )
 
 type BettingAPI struct {
@@ -158,6 +159,29 @@ func (b BettingAPI) ListClearedOrders(clco ContainerListClearedOrders) (ClearedO
 
 	payload := bytes.NewBuffer(clcoBytes)
 	response, err := b.sendRequest(listClearedOrdersEndpoint, payload)
+	if err != nil {
+		return cosr, err
+	}
+
+	err = json.Unmarshal(response, &cosr)
+	if err != nil {
+		return cosr, fmt.Errorf("error while unmarshalling response %w", err)
+	}
+
+	return cosr, nil
+}
+
+// ListClearedOrders returns a list of settled bets based on the bet status, ordered by settled date.
+func (b BettingAPI) ListCurrentOrders(clco ContainerListCurrentOrders) (CurrentOrderSummaryReport, error) {
+	cosr := CurrentOrderSummaryReport{}
+
+	clcoBytes, err := json.Marshal(clco)
+	if err != nil {
+		return cosr, fmt.Errorf("error while marshalling request %w", err)
+	}
+
+	payload := bytes.NewBuffer(clcoBytes)
+	response, err := b.sendRequest(listCurrentOrdersEndpoint, payload)
 	if err != nil {
 		return cosr, err
 	}
