@@ -79,10 +79,11 @@ type Runner struct {
 }
 
 type PlaceInstruction struct {
-	OrderType   OrderType  `json:"orderType"`
-	SelectionID uint       `json:"selectionId"`
-	Side        Side       `json:"side"`
-	LimitOrder  LimitOrder `json:"limitOrder"`
+	OrderType        OrderType  `json:"orderType"`
+	SelectionID      uint       `json:"selectionId"`
+	Side             Side       `json:"side"`
+	LimitOrder       LimitOrder `json:"limitOrder"`
+	CustomerOrderRef string     `json:"customerOrderRef"`
 }
 
 type LimitOrder struct {
