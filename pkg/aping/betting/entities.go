@@ -37,7 +37,7 @@ type MarketCatalogue struct {
 	Runners      []RunnerCatalog `json:"runners"`
 	// EventType    string          `json:"eventType"`
 	// Competition  string          `json:"competition"`
-	// Event        string          `json:"event"`
+	Event string `json:"event"`
 }
 
 type RunnerCatalog struct {
@@ -46,6 +46,15 @@ type RunnerCatalog struct {
 	Handicap     float64           `json:"handicap"`
 	SortPriority uint              `json:"sortPriority"`
 	Metadata     map[string]string `json:"metadata"`
+}
+
+type Event struct {
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	CountryCode string     `json:"countryCode"`
+	Timezone    string     `json:"timezone"`
+	Venue       string     `json:"venue"`
+	OpenDate    *time.Time `json:"openDate"`
 }
 
 type BetfairAPIError struct {
