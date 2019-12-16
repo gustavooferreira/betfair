@@ -9,7 +9,8 @@ type ContainerListMarketCatalogue struct {
 }
 
 type ContainerListMarketBook struct {
-	MarketIDs []string `json:"marketIds"`
+	MarketIDs       []string        `json:"marketIds"`
+	PriceProjection PriceProjection `json:"priceProjection"`
 }
 
 type ContainerPlaceOrders struct {

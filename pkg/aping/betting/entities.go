@@ -212,3 +212,7 @@ type CurrentOrderSummary struct {
 	BetID  string      `json:"betId"`
 	Status OrderStatus `json:"status"`
 }
+
+type PriceProjection struct {
+	PriceData []PriceData `json:"priceData"`
+}
