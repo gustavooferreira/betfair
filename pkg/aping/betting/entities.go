@@ -37,7 +37,7 @@ type MarketCatalogue struct {
 	Runners      []RunnerCatalog `json:"runners"`
 	// EventType    string          `json:"eventType"`
 	// Competition  string          `json:"competition"`
-	Event string `json:"event"`
+	Event Event `json:"event"`
 }
 
 type RunnerCatalog struct {
