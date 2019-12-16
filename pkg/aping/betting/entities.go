@@ -75,16 +75,36 @@ type APINGException struct {
 }
 
 type MarketBook struct {
-	MarketID string       `json:"marketId"`
-	Status   MarketStatus `json:"status"`
-	InPlay   bool         `json:"inplay"`
-	Runners  []Runner     `json:"runners"`
+	MarketID              string         `json:"marketId"`
+	Status                MarketStatus   `json:"status"`
+	InPlay                bool           `json:"inplay"`
+	NumberOfWinners       uint           `json:"numberOfWinners"`
+	NumberOfRunners       uint           `json:"numberOfRunners"`
+	NumberOfActiveRunners uint           `json:"numberOfActiveRunners"`
+	LastMatchTime         time.Time      `json:"lastMatchTime"`
+	TotalMatched          float64        `json:"totalMatched"`
+	TotalAvailable        float64        `json:"totalAvailable"`
+	Version               uint           `json:"version"`
+	Runners               []Runner       `json:"runners"`
+	Ex                    ExchangePrices `json:"ex"`
+}
+
+type ExchangePrices struct {
+	AvailableToBack []PriceSize `json:"availableToBack"`
+	AvailableToLay  []PriceSize `json:"availableToLay"`
+	TradedVolume    []PriceSize `json:"tradedVolume"`
+}
+
+type PriceSize struct {
+	Price float64 `json:"price"`
+	Size  float64 `json:"size"`
 }
 
 type Runner struct {
 	SelectionID     uint         `json:"selectionId"`
 	Status          RunnerStatus `json:"status"`
 	LastPriceTraded float64      `json:lastPriceTraded`
+	TotalMatched    float64      `json:totalMatched`
 }
 
 type PlaceInstruction struct {
