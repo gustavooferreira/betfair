@@ -214,6 +214,14 @@ type ClearedOrderSummary struct {
 }
 
 type ItemDescription struct {
+	EventTypeDesc   string     `json:"eventTypeDesc"`
+	EventDesc       string     `json:"eventDesc"`
+	MarketDesc      string     `json:"marketDesc"`
+	MarketType      string     `json:"marketType"`
+	MarketStartTime *time.Time `json:"marketStartTime"`
+	RunnerDesc      string     `json:"runnerDesc"`
+	NumberOfWinners uint       `json:"numberOfWinners"`
+	EachWayDivisor  float64    `json:"eachWayDivisor"`
 }
 
 type CurrentOrderSummaryReport struct {
