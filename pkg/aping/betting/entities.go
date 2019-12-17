@@ -193,14 +193,27 @@ type ClearedOrderSummaryReport struct {
 }
 
 type ClearedOrderSummary struct {
-	MarketID            string  `json:"marketId"`
-	SelectionID         uint    `json:"SelectionId"`
-	Side                Side    `json:"side"`
-	BetOutcome          string  `json:"betOutcome"`
-	Commission          float64 `json:"commission"`
-	PriceMatched        float64 `json:"priceMatched"`
-	Profit              float64 `json:"profit"`
-	CustomerStrategyRef string  `json:"customerStrategyRef"`
+	EventID             string          `json:"eventId"`
+	MarketID            string          `json:"marketId"`
+	SelectionID         uint            `json:"selectionId"`
+	BetID               string          `json:"betId"`
+	PlacedDate          *time.Time      `json:"placedDate"`
+	Side                Side            `json:"side"`
+	ItemDescription     ItemDescription `json:"itemDescription"`
+	BetOutcome          string          `json:"betOutcome"`
+	PriceRequested      float64         `json:"priceRequested"`
+	SettledDate         *time.Time      `json:"settledDate"`
+	LastMatchedDate     *time.Time      `json:"lastMatchedDate"`
+	BetCount            uint            `json:"betCount"`
+	Commission          float64         `json:"commission"`
+	PriceMatched        float64         `json:"priceMatched"`
+	PriceReduced        bool            `json:"priceReduced"`
+	SizeSettled         float64         `json:"sizeSettled"`
+	Profit              float64         `json:"profit"`
+	CustomerStrategyRef string          `json:"customerStrategyRef"`
+}
+
+type ItemDescription struct {
 }
 
 type CurrentOrderSummaryReport struct {

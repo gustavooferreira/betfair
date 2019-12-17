@@ -31,10 +31,13 @@ type ContainerCancelOrders struct {
 }
 
 type ContainerListClearedOrders struct {
-	BetStatus            BetStatus  `json:"betStatus"`
-	GroupBy              *GroupBy   `json:"groupBy"`
-	CustomerStrategyRefs []string   `json:"customerStrategyRefs,omitempty"`
-	SettleDateRange      *TimeRange `json:"settleDateRange,omitempty"`
+	BetStatus              BetStatus  `json:"betStatus"`
+	GroupBy                *GroupBy   `json:"groupBy"`
+	CustomerStrategyRefs   []string   `json:"customerStrategyRefs,omitempty"`
+	SettleDateRange        *TimeRange `json:"settleDateRange,omitempty"`
+	IncludeItemDescription bool       `json:"includeItemDescription"`
+	FromRecord             uint       `json:"fromRecord"`
+	RecordCount            uint       `json:"recordCount"`
 }
 
 type ContainerListCurrentOrders struct {
