@@ -34,7 +34,7 @@ type ContainerListClearedOrders struct {
 	BetStatus              BetStatus  `json:"betStatus"`
 	GroupBy                *GroupBy   `json:"groupBy"`
 	CustomerStrategyRefs   []string   `json:"customerStrategyRefs,omitempty"`
-	SettleDateRange        *TimeRange `json:"settleDateRange,omitempty"`
+	SettledDateRange       *TimeRange `json:"settledDateRange,omitempty"`
 	IncludeItemDescription bool       `json:"includeItemDescription"`
 	FromRecord             uint       `json:"fromRecord"`
 	RecordCount            uint       `json:"recordCount"`
