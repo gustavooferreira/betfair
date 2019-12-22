@@ -8,9 +8,9 @@ type MarketFilter struct {
 	TextQuery          string              `json:"textQuery,omitempty"`
 	ExchangeIDs        []string            `json:"exchangeIds,omitempty"` //NOTE: Deprecated
 	EventTypeIDs       []string            `json:"eventTypeIds,omitempty"`
-	EventIds           []string            `json:"eventIds,omitempty"`
-	CompetitionISs     []string            `json:"competitionIds,omitempty"`
-	MarketIds          []string            `json:"marketIds,omitempty"`
+	EventIDs           []string            `json:"eventIds,omitempty"`
+	CompetitionIDs     []string            `json:"competitionIds,omitempty"`
+	MarketIDs          []string            `json:"marketIds,omitempty"`
 	Venues             []string            `json:"venues,omitempty"`
 	BSPOnly            *bool               `json:"bspOnly,omitempty"`
 	TurnInPlayEnabled  *bool               `json:"turnInPlayEnabled,omitempty"`
