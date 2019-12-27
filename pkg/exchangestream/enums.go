@@ -70,7 +70,7 @@ func (ec ErrorCode) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal ErrorCode enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -83,7 +83,7 @@ func (ec *ErrorCode) UnmarshalJSON(data []byte) error {
 
 	result, ok := errorCodeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching ErrorCode enum value")
 	}
 
 	*ec = result
@@ -120,7 +120,7 @@ func (sc StatusCode) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal StatusCode enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -133,7 +133,7 @@ func (sc *StatusCode) UnmarshalJSON(data []byte) error {
 
 	result, ok := statusCodeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching StatusCode enum value")
 	}
 
 	*sc = result
@@ -191,7 +191,7 @@ func (pd PriceData) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal PriceData enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -204,7 +204,7 @@ func (pd *PriceData) UnmarshalJSON(data []byte) error {
 
 	result, ok := priceDataToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching PriceData enum value")
 	}
 
 	*pd = result
@@ -250,7 +250,7 @@ func (bt BettingType) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal BettingType enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -263,7 +263,7 @@ func (bt *BettingType) UnmarshalJSON(data []byte) error {
 
 	result, ok := bettingTypeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching BettingType enum value")
 	}
 
 	*bt = result
@@ -303,7 +303,7 @@ func (ct ChangeType) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal ChangeType enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -316,7 +316,7 @@ func (ct *ChangeType) UnmarshalJSON(data []byte) error {
 
 	result, ok := changeTypeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching ChangeType enum value")
 	}
 
 	*ct = result
@@ -356,7 +356,7 @@ func (st SegmentType) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal SegmentType enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -369,7 +369,7 @@ func (st *SegmentType) UnmarshalJSON(data []byte) error {
 
 	result, ok := segmentTypeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching SegmentType enum value")
 	}
 
 	*st = result
@@ -412,7 +412,7 @@ func (rs RaceStatus) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal RaceStatus enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -425,7 +425,7 @@ func (rs *RaceStatus) UnmarshalJSON(data []byte) error {
 
 	result, ok := raceStatusToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching RaceStatus enum value")
 	}
 
 	*rs = result
@@ -465,7 +465,7 @@ func (plt PriceLadderType) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal PriceLadderType enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -478,7 +478,7 @@ func (plt *PriceLadderType) UnmarshalJSON(data []byte) error {
 
 	result, ok := priceLadderTypeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching PriceLadderType enum value")
 	}
 
 	*plt = result
@@ -530,7 +530,7 @@ func (rs RunnerStatus) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal RunnerStatus enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -543,7 +543,7 @@ func (rs *RunnerStatus) UnmarshalJSON(data []byte) error {
 
 	result, ok := runnerStatusToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching RunnerStatus enum value")
 	}
 
 	*rs = result
@@ -580,7 +580,7 @@ func (os OrderSide) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal OrderSide enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -593,7 +593,7 @@ func (os *OrderSide) UnmarshalJSON(data []byte) error {
 
 	result, ok := orderSideToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching OrderSide enum value")
 	}
 
 	*os = result
@@ -633,7 +633,7 @@ func (pt PersistenceType) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal PersistenceType enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -646,7 +646,7 @@ func (pt *PersistenceType) UnmarshalJSON(data []byte) error {
 
 	result, ok := persistenceTypeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching PersistenceType enum value")
 	}
 
 	*pt = result
@@ -686,7 +686,7 @@ func (ot OrderType) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal OrderType enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -699,7 +699,7 @@ func (ot *OrderType) UnmarshalJSON(data []byte) error {
 
 	result, ok := orderTypeToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching OrderType enum value")
 	}
 
 	*ot = result
@@ -736,7 +736,7 @@ func (os OrderStatus) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal OrderStatus enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -749,7 +749,7 @@ func (os *OrderStatus) UnmarshalJSON(data []byte) error {
 
 	result, ok := orderStatusToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching OrderStatus enum value")
 	}
 
 	*os = result
