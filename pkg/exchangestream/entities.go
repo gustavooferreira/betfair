@@ -120,13 +120,13 @@ type MarketDefinition struct {
 }
 
 type RunnerDefinition struct {
-	SortPriority     uint       `json:"sortPriority"`
-	RemovalDate      string     `json:"removalDate"` // TODO: time.Time!
-	ID               uint       `json:"id"`
-	Handicap         *float64   `json:"hc,omitempty"`
-	AdjustmentFactor float64    `json:"adjustmentFactor"`
-	BSP              float64    `json:"bsp"`
-	Status           RaceStatus `json:"status"`
+	SortPriority     uint         `json:"sortPriority"`
+	RemovalDate      string       `json:"removalDate"` // TODO: time.Time!
+	ID               uint         `json:"id"`
+	Handicap         *float64     `json:"hc,omitempty"`
+	AdjustmentFactor float64      `json:"adjustmentFactor"`
+	BSP              float64      `json:"bsp"`
+	Status           RunnerStatus `json:"status"`
 }
 
 type PriceLadderDefinition struct {
