@@ -39,7 +39,7 @@ func ({{ .VarName }} {{ .Type }}) MarshalJSON() ([]byte, error) {
 		return bytes.NewBufferString(fmt.Sprintf(`"%s"`, elem)).Bytes(), nil
 	}
 
-	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal enum")
+	return bytes.NewBufferString("").Bytes(), errors.New("couldn't marshal {{ $elem.Type }} enum")
 }
 
 // UnmarshalJSON unmashals a quoted json string to the enum value
@@ -52,7 +52,7 @@ func ({{ .VarName }} *{{ .Type }}) UnmarshalJSON(data []byte) error {
 
 	result, ok := {{ .TypeCamel }}ToEnum[j]
 	if !ok {
-		return errors.New("couldn't find matching enum value")
+		return errors.New("couldn't find matching {{ $elem.Type }} enum value")
 	}
 
 	*{{ .VarName }} = result
