@@ -91,8 +91,8 @@ type MarketBook struct {
 type Runner struct {
 	SelectionID     uint           `json:"selectionId"`
 	Status          RunnerStatus   `json:"status"`
-	LastPriceTraded float64        `json:lastPriceTraded`
-	TotalMatched    float64        `json:totalMatched`
+	LastPriceTraded float64        `json:"lastPriceTraded"`
+	TotalMatched    float64        `json:"totalMatched"`
 	Ex              ExchangePrices `json:"ex"`
 }
 

@@ -145,19 +145,19 @@ type KeyLineSelection struct {
 type RunnerChange struct {
 	TotalVolume *float64    `json:"tv,omitempty"`
 	BATB        [][]float64 `json:"batb,omitempty"`
-	SPB         [][]float64 `json:"spb",omitempty`
-	BDATL       [][]float64 `json:"bdatl",omitempty`
-	TRD         [][]float64 `json:"trd",omitempty`
-	SPF         *float64    `json:"spf",omitempty`
-	LTP         *float64    `json:"ltp",omitempty`
-	ATB         [][]float64 `json:"atb",omitempty`
-	SPL         [][]float64 `json:"spl",omitempty`
-	SPN         *float64    `json:"spn",omitempty`
-	ATL         [][]float64 `json:"atl",omitempty`
-	BATL        [][]float64 `json:"batl",omitempty`
-	ID          uint        `json:"id",omitempty`
-	Handicap    *float64    `json:"hc",omitempty`
-	BDATB       [][]float64 `json:"bdatb",omitempty`
+	SPB         [][]float64 `json:"spb,omitempty"`
+	BDATL       [][]float64 `json:"bdatl,omitempty"`
+	TRD         [][]float64 `json:"trd,omitempty"`
+	SPF         *float64    `json:"spf,omitempty"`
+	LTP         *float64    `json:"ltp,omitempty"`
+	ATB         [][]float64 `json:"atb,omitempty"`
+	SPL         [][]float64 `json:"spl,omitempty"`
+	SPN         *float64    `json:"spn,omitempty"`
+	ATL         [][]float64 `json:"atl,omitempty"`
+	BATL        [][]float64 `json:"batl,omitempty"`
+	ID          uint        `json:"id,omitempty"`
+	Handicap    *float64    `json:"hc,omitempty"`
+	BDATB       [][]float64 `json:"bdatb,omitempty"`
 }
 
 type OrderChangeMessage struct {
@@ -181,12 +181,12 @@ type OrderMarketChange struct {
 
 type OrderRunnerChange struct {
 	MatchedBacks    [][]float64                    `json:"mb,omitempty"`
-	StrategyMatches map[string]StrategyMatchChange `json:"smc",omitempty`
-	UnmatchedOrders []Order                        `json:"uo",omitempty`
+	StrategyMatches map[string]StrategyMatchChange `json:"smc,omitempty"`
+	UnmatchedOrders []Order                        `json:"uo,omitempty"`
 	ID              uint                           `json:"id"`
-	Handicap        float64                        `json:"hc",omitempty`
-	FullImage       *bool                          `json:"fullImage",omitempty`
-	MatchedLays     [][]float64                    `json:"ml",omitempty`
+	Handicap        float64                        `json:"hc,omitempty"`
+	FullImage       *bool                          `json:"fullImage,omitempty"`
+	MatchedLays     [][]float64                    `json:"ml,omitempty"`
 }
 
 type Order struct {

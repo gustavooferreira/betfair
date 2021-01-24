@@ -57,7 +57,8 @@ func streamStuff(as auth.AuthService) {
 		MaximumBackoff:     10,
 		Reconnect:          true,
 	}
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	err := esaclient.Connect(ctx, connConfig)
 	if err != nil {
