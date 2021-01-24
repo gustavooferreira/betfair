@@ -18,8 +18,8 @@ func TestAPI(t *testing.T) {
 	tr := TimeRange{From: &from, To: &to}
 
 	// "sort":"FIRST_TO_START"
-	mf := MarketFilter{EventTypeIds: []string{"7"}, MarketCountries: []string{"GB", "IE"},
-		MarketTypeCodes: []string{"WIN"}, MarketStartTime: tr}
+	mf := MarketFilter{EventTypeIDs: []string{"7"}, MarketCountries: []string{"GB", "IE"},
+		MarketTypeCodes: []string{"WIN"}, MarketStartTime: &tr}
 
 	_ = bs
 	_ = mf
