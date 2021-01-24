@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/gustavooferreira/betfair/pkg/auth"
+	"github.com/gustavooferreira/betfair/auth"
 	"github.com/gustavooferreira/betfair/pkg/exchangestream"
 	"github.com/gustavooferreira/betfair/pkg/globals"
 	"github.com/gustavooferreira/betfair/pkg/utils/log"

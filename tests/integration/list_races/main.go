@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/gustavooferreira/betfair/auth"
 	"github.com/gustavooferreira/betfair/pkg/aping"
 	"github.com/gustavooferreira/betfair/pkg/aping/betting"
-	"github.com/gustavooferreira/betfair/pkg/auth"
 )
 
 func main() {

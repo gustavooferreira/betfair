@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-const loginURL string = "https://identitysso-cert.betfair.com/api/certlogin"
-const keepAliveURL string = "https://identitysso.betfair.com/api/keepAlive"
-const logoutURL string = "https://identitysso.betfair.com/api/logout"
+const loginURLGlobal string = "https://identitysso-cert.betfair.com/api/certlogin"
+const keepAliveURLGlobal string = "https://identitysso.betfair.com/api/keepAlive"
+const logoutURLGlobal string = "https://identitysso.betfair.com/api/logout"
 
 type LoginResponse struct {
 	LoginStatus  string `json:"loginStatus"`
@@ -57,10 +57,10 @@ func (as *AuthService) Login() (err error) {
 	// Setup HTTPS client
 	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
 	tlsConfig.BuildNameToCertificate()
-	transport := &http.Transport{MaxIdleConns: 10, IdleConnTimeout: 10 * time.Second, TLSClientConfig: tlsConfig}
+	transport := &http.Transport{MaxIdleConns: 2, IdleConnTimeout: 10 * time.Second, TLSClientConfig: tlsConfig}
 	httpClient := http.Client{Transport: transport, Timeout: time.Second * time.Duration(as.connectionTimeout)}
 
-	req, err := http.NewRequest("POST", loginURL, bytes.NewBuffer([]byte(payload)))
+	req, err := http.NewRequest("POST", loginURLGlobal, bytes.NewBuffer([]byte(payload)))
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (as AuthService) KeepAlive() error {
 
 	httpClient := http.Client{Timeout: time.Second * time.Duration(as.connectionTimeout)}
 
-	req, err := http.NewRequest("GET", keepAliveURL, nil)
+	req, err := http.NewRequest("GET", keepAliveURLGlobal, nil)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (as *AuthService) Logout() error {
 
 	httpClient := http.Client{Timeout: time.Second * time.Duration(as.connectionTimeout)}
 
-	req, err := http.NewRequest("GET", logoutURL, nil)
+	req, err := http.NewRequest("GET", logoutURLGlobal, nil)
 	if err != nil {
 		return err
 	}

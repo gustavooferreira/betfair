@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/gustavooferreira/betfair/pkg/auth"
+	"github.com/gustavooferreira/betfair/auth"
 )
 
 func main() {
